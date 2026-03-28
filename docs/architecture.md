@@ -70,9 +70,7 @@ Source/
 ## 2. Class Diagram
 ![alt text](class_dia.png "Class Diagram")
 
-## 3.
-
-## 2. Communication
+## 3. Communication
 
 | From → To | Relationship | Communication |
 |---|---|---|
