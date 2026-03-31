@@ -10,6 +10,8 @@ from .predicates import (
     Less,
 )
 from .axioms import Axioms
+from .kb import KnowledgeBase
+from .cnf_generator import CNFGenerator
 
 __all__ = [
     "Literal",
@@ -22,4 +24,6 @@ __all__ = [
     "GreaterV",
     "Less",
     "Axioms",
+    "KnowledgeBase",
+    "CNFGenerator",
 ]
