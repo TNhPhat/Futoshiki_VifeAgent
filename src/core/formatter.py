@@ -105,7 +105,7 @@ class Formatter:
             parts.append(self._EMPTY_CELL if val == 0 else str(val))
             if j < puzzle.N - 1:
                 h = puzzle.get_h_constraint(i, j)
-                parts.append("<" if h == 1 else (">" if h == -1 else " "))
+                parts.append(h.direction if h is not None else " ")
         return " ".join(parts)
 
     def _format_separator_row(self, puzzle: Puzzle, i: int) -> str:
@@ -131,7 +131,12 @@ class Formatter:
         parts: list[str] = []
         for j in range(puzzle.N):
             v = puzzle.get_v_constraint(i, j)
-            parts.append("^" if v == 1 else ("v" if v == -1 else " "))
+            if v is None:
+                parts.append(" ")
+            elif v.direction == "<":
+                parts.append("^")
+            else:
+                parts.append("v")
             if j < puzzle.N - 1:
                 parts.append(" ")  # column gap — mirrors h-constraint slot
         return " ".join(parts).rstrip()

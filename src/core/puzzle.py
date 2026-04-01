@@ -4,6 +4,8 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
+from constraints.inequality_constraint import InequalityConstraint
+
 
 @dataclass
 class Puzzle:
@@ -21,20 +23,26 @@ class Puzzle:
     grid : np.ndarray
         Shape (N, N), dtype int.
         0 = empty cell; 1..N = pre-filled clue value.
-    h_constraints : np.ndarray
-        Shape (N, N-1), dtype int.
-        Horizontal constraint immediately to the right of cell (i, j):
-        0 = none, 1 = '<' (left < right), -1 = '>' (left > right).
-    v_constraints : np.ndarray
-        Shape (N-1, N), dtype int.
-        Vertical constraint immediately below cell (i, j):
-        0 = none, 1 = '<' (top < bottom), -1 = '>' (top > bottom).
+    h_constraints : list of InequalityConstraint
+        All horizontal inequality constraints.  Each entry records
+        cell1=(i, j), cell2=(i, j+1), and direction ``'<'`` or ``'>'``.
+    v_constraints : list of InequalityConstraint
+        All vertical inequality constraints.  Each entry records
+        cell1=(i, j), cell2=(i+1, j), and direction ``'<'`` or ``'>'``.
     """
 
     N: int
-    grid: np.ndarray        # shape: (N, N)
-    h_constraints: np.ndarray  # shape: (N, N-1)
-    v_constraints: np.ndarray  # shape: (N-1, N)
+    grid: np.ndarray                        # shape: (N, N)
+    h_constraints: list[InequalityConstraint]
+    v_constraints: list[InequalityConstraint]
+
+    # Private lookup maps — keyed by the left/top cell (i, j)
+    _h_map: dict[tuple[int, int], InequalityConstraint] = field(
+        default_factory=dict, init=False, repr=False
+    )
+    _v_map: dict[tuple[int, int], InequalityConstraint] = field(
+        default_factory=dict, init=False, repr=False
+    )
 
     # Cached cell lists — computed once in __post_init__, not constructor args
     _given_cells: list[tuple[int, int, int]] = field(
@@ -45,14 +53,19 @@ class Puzzle:
     )
 
     def __post_init__(self) -> None:
-        """Pre-compute and cache given and empty cell lists from the grid."""
-        given_rows, given_cols = np.nonzero(self.grid)       # nonzero → given
+        """Pre-compute lookup maps and cached cell lists."""
+        # Build O(1) constraint lookup maps
+        self._h_map = {c.cell1: c for c in self.h_constraints}
+        self._v_map = {c.cell1: c for c in self.v_constraints}
+
+        # Cache given and empty cells
+        given_rows, given_cols = np.nonzero(self.grid)
         self._given_cells = [
             (int(r), int(c), int(self.grid[r, c]))
             for r, c in zip(given_rows, given_cols)
         ]
 
-        empty_rows, empty_cols = np.nonzero(self.grid == 0)  # zero → empty
+        empty_rows, empty_cols = np.nonzero(self.grid == 0)
         self._empty_cells = [
             (int(r), int(c))
             for r, c in zip(empty_rows, empty_cols)
@@ -121,7 +134,9 @@ class Puzzle:
     # Constraint queries
     # ------------------------------------------------------------------
 
-    def get_h_constraint(self, i: int, j: int) -> int:
+    def get_h_constraint(
+        self, i: int, j: int
+    ) -> InequalityConstraint | None:
         """
         Return the horizontal constraint between cell (i, j) and (i, j+1).
 
@@ -134,12 +149,15 @@ class Puzzle:
 
         Returns
         -------
-        int
-            0 = no constraint, 1 = '<' (left < right), -1 = '>' (left > right).
+        InequalityConstraint or None
+            The constraint object (``direction`` is ``'<'`` or ``'>'``),
+            or ``None`` if no constraint exists at this position.
         """
-        return int(self.h_constraints[i, j])
+        return self._h_map.get((i, j))
 
-    def get_v_constraint(self, i: int, j: int) -> int:
+    def get_v_constraint(
+        self, i: int, j: int
+    ) -> InequalityConstraint | None:
         """
         Return the vertical constraint between cell (i, j) and (i+1, j).
 
@@ -152,10 +170,11 @@ class Puzzle:
 
         Returns
         -------
-        int
-            0 = no constraint, 1 = '<' (top < bottom), -1 = '>' (top > bottom).
+        InequalityConstraint or None
+            The constraint object (``direction`` is ``'<'`` or ``'>'``),
+            or ``None`` if no constraint exists at this position.
         """
-        return int(self.v_constraints[i, j])
+        return self._v_map.get((i, j))
 
     # ------------------------------------------------------------------
     # Copy
@@ -163,21 +182,21 @@ class Puzzle:
 
     def copy(self) -> Puzzle:
         """
-        Return a deep copy of this puzzle with independent numpy arrays.
+        Return a deep copy of this puzzle with an independent grid array.
 
-        Mutating the copy's ``grid`` does not affect the original, which
-        is important for solvers that fill in values incrementally.
+        Constraint objects are shared (they are immutable problem data).
+        Mutating the copy's ``grid`` does not affect the original.
 
         Returns
         -------
         Puzzle
-            A new ``Puzzle`` instance with copied arrays.
+            A new ``Puzzle`` instance with a copied grid.
         """
         return Puzzle(
             N=self.N,
             grid=self.grid.copy(),
-            h_constraints=self.h_constraints.copy(),
-            v_constraints=self.v_constraints.copy(),
+            h_constraints=list(self.h_constraints),
+            v_constraints=list(self.v_constraints),
         )
 
     # ------------------------------------------------------------------
@@ -201,15 +220,22 @@ class Puzzle:
                 cell = self.grid[i, j]
                 row_parts.append(str(cell) if cell != 0 else ".")
                 if j < self.N - 1:
-                    h = self.h_constraints[i, j]
-                    row_parts.append("<" if h == 1 else (">" if h == -1 else " "))
+                    h = self.get_h_constraint(i, j)
+                    row_parts.append(
+                        h.direction if h is not None else " "
+                    )
             lines.append(" ".join(row_parts))
 
             if i < self.N - 1:
                 vert_parts: list[str] = []
                 for j in range(self.N):
-                    v = self.v_constraints[i, j]
-                    vert_parts.append("^" if v == 1 else ("v" if v == -1 else " "))
+                    v = self.get_v_constraint(i, j)
+                    if v is None:
+                        vert_parts.append(" ")
+                    elif v.direction == "<":
+                        vert_parts.append("^")
+                    else:
+                        vert_parts.append("v")
                     if j < self.N - 1:
                         vert_parts.append(" ")
                 lines.append(" ".join(vert_parts))
