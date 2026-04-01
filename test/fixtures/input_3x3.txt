@@ -1,0 +1,14 @@
+# Integration test fixture: 3x3 Futoshiki puzzle
+# Grid (0 = empty cell)
+3
+2,0,0
+0,0,3
+0,1,0
+# Horizontal constraints (N-1 = 2 values per row)
+# 1 = '<', -1 = '>', 0 = none
+1,0
+0,0
+0,-1
+# Vertical constraints (N = 3 values per row, N-1 = 2 rows)
+0,0,0
+0,1,0

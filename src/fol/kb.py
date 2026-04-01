@@ -60,6 +60,26 @@ class KnowledgeBase:
         for clause in clauses:
             self.add_clause(clause)
 
+    def remove_clause(self, clause: Clause) -> None:
+        """
+        Remove the first occurrence of *clause* from the knowledge base.
+
+        If the clause is a unit clause whose literal no longer appears in
+        any remaining unit clause, the literal is also removed from the
+        ``facts`` set.
+
+        Parameters
+        ----------
+        clause : Clause
+            The clause to remove.  Must be present; raises ``ValueError``
+            otherwise.
+        """
+        self.clauses.remove(clause)
+        if len(clause) == 1:
+            lit = clause[0]
+            if not any(len(c) == 1 and c[0] == lit for c in self.clauses):
+                self.facts.discard(lit)
+
     # ------------------------------------------------------------------
     # Queries
     # ------------------------------------------------------------------
@@ -90,6 +110,63 @@ class KnowledgeBase:
             Clauses containing ``literal`` (by equality).
         """
         return [c for c in self.clauses if literal in c]
+
+    def get_clauses(self) -> list[Clause]:
+        """
+        Return all clauses in the knowledge base.
+
+        Returns
+        -------
+        list of Clause
+            All CNF clauses currently stored.
+        """
+        return self.clauses
+
+    def get_facts(self) -> set[Literal]:
+        """
+        Return all known facts (literals asserted as true).
+
+        Returns
+        -------
+        set of Literal
+            All literals derived from unit clauses.
+        """
+        return self.facts
+
+    def is_known(self, literal: Literal) -> bool:
+        """
+        Check whether a literal is a known fact.
+
+        Parameters
+        ----------
+        literal : Literal
+            The literal to test.
+
+        Returns
+        -------
+        bool
+            ``True`` if *literal* is in the ``facts`` set.
+        """
+        return literal in self.facts
+
+    def get_facts_by_predicate(self, name: str) -> list[Literal]:
+        """
+        Return all known facts whose predicate matches *name*.
+
+        Useful for retrieving all ``Val``, ``Less``, or ``LessH`` facts
+        without scanning all clauses.
+
+        Parameters
+        ----------
+        name : str
+            Predicate name to filter by (e.g. ``"Val"``, ``"Less"``).
+
+        Returns
+        -------
+        list of Literal
+            All facts ``f`` where ``f.name == name``.
+        """
+        return [f for f in self.facts if f.name == name]
 
     # ------------------------------------------------------------------
     # Dunder methods
