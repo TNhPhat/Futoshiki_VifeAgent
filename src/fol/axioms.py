@@ -212,17 +212,17 @@ class Axioms:
             and value pair.
         """
         clauses: list[Clause] = []
-        for i in range(N - 1):
-            for j in range(N):
-                if int(puzzle.v_constraints[i, j]) != 1:
-                    continue
-                for v1 in range(1, N + 1):
-                    for v2 in range(1, N + 1):
-                        clauses.append([
-                            ~Val(i, j, v1),
-                            ~Val(i + 1, j, v2),
-                            Less(v1, v2),
-                        ])
+        for c in puzzle.v_constraints:
+            if c.direction != "<":
+                continue
+            (i, j), (i2, _) = c.cell1, c.cell2
+            for v1 in range(1, N + 1):
+                for v2 in range(1, N + 1):
+                    clauses.append([
+                        ~Val(i, j, v1),
+                        ~Val(i2, j, v2),
+                        Less(v1, v2),
+                    ])
         return clauses
 
     @staticmethod
@@ -233,8 +233,8 @@ class Axioms:
         A6 — Vertical ``>`` constraint enforcement.
 
         For each cell ``(i, j)`` where ``GreaterV(i, j)`` exists
-        (``v_constraints[i, j] == -1``), and for each value pair
-        ``(v1, v2)``, emits:
+        (``v_constraints`` entry with ``direction == '>'``), and for each
+        value pair ``(v1, v2)``, emits:
         ``¬Val(i,j,v1) ∨ ¬Val(i+1,j,v2) ∨ Less(v2,v1)``.
 
         Parameters
@@ -242,7 +242,7 @@ class Axioms:
         N : int
             Grid size.
         puzzle : Puzzle
-            Puzzle instance carrying constraint arrays.
+            Puzzle instance carrying constraint lists.
 
         Returns
         -------
@@ -251,17 +251,17 @@ class Axioms:
             and value pair.
         """
         clauses: list[Clause] = []
-        for i in range(N - 1):
-            for j in range(N):
-                if int(puzzle.v_constraints[i, j]) != -1:
-                    continue
-                for v1 in range(1, N + 1):
-                    for v2 in range(1, N + 1):
-                        clauses.append([
-                            ~Val(i, j, v1),
-                            ~Val(i + 1, j, v2),
-                            Less(v2, v1),
-                        ])
+        for c in puzzle.v_constraints:
+            if c.direction != ">":
+                continue
+            (i, j), (i2, _) = c.cell1, c.cell2
+            for v1 in range(1, N + 1):
+                for v2 in range(1, N + 1):
+                    clauses.append([
+                        ~Val(i, j, v1),
+                        ~Val(i2, j, v2),
+                        Less(v2, v1),
+                    ])
         return clauses
 
     @staticmethod
@@ -272,8 +272,8 @@ class Axioms:
         A7 — Horizontal ``<`` constraint enforcement.
 
         For each cell ``(i, j)`` where ``LessH(i, j)`` exists
-        (``h_constraints[i, j] == 1``), and for each value pair
-        ``(v1, v2)``, emits:
+        (``h_constraints`` entry with ``direction == '<'``), and for each
+        value pair ``(v1, v2)``, emits:
         ``¬Val(i,j,v1) ∨ ¬Val(i,j+1,v2) ∨ Less(v1,v2)``.
 
         Parameters
@@ -281,7 +281,7 @@ class Axioms:
         N : int
             Grid size.
         puzzle : Puzzle
-            Puzzle instance carrying constraint arrays.
+            Puzzle instance carrying constraint lists.
 
         Returns
         -------
@@ -290,17 +290,17 @@ class Axioms:
             and value pair.
         """
         clauses: list[Clause] = []
-        for i in range(N):
-            for j in range(N - 1):
-                if int(puzzle.h_constraints[i, j]) != 1:
-                    continue
-                for v1 in range(1, N + 1):
-                    for v2 in range(1, N + 1):
-                        clauses.append([
-                            ~Val(i, j, v1),
-                            ~Val(i, j + 1, v2),
-                            Less(v1, v2),
-                        ])
+        for c in puzzle.h_constraints:
+            if c.direction != "<":
+                continue
+            (i, j), (_, j2) = c.cell1, c.cell2
+            for v1 in range(1, N + 1):
+                for v2 in range(1, N + 1):
+                    clauses.append([
+                        ~Val(i, j, v1),
+                        ~Val(i, j2, v2),
+                        Less(v1, v2),
+                    ])
         return clauses
 
     @staticmethod
@@ -311,8 +311,8 @@ class Axioms:
         A8 — Horizontal ``>`` constraint enforcement.
 
         For each cell ``(i, j)`` where ``GreaterH(i, j)`` exists
-        (``h_constraints[i, j] == -1``), and for each value pair
-        ``(v1, v2)``, emits:
+        (``h_constraints`` entry with ``direction == '>'``), and for each
+        value pair ``(v1, v2)``, emits:
         ``¬Val(i,j,v1) ∨ ¬Val(i,j+1,v2) ∨ Less(v2,v1)``.
 
         Parameters
@@ -320,7 +320,7 @@ class Axioms:
         N : int
             Grid size.
         puzzle : Puzzle
-            Puzzle instance carrying constraint arrays.
+            Puzzle instance carrying constraint lists.
 
         Returns
         -------
@@ -329,17 +329,17 @@ class Axioms:
             and value pair.
         """
         clauses: list[Clause] = []
-        for i in range(N):
-            for j in range(N - 1):
-                if int(puzzle.h_constraints[i, j]) != -1:
-                    continue
-                for v1 in range(1, N + 1):
-                    for v2 in range(1, N + 1):
-                        clauses.append([
-                            ~Val(i, j, v1),
-                            ~Val(i, j + 1, v2),
-                            Less(v2, v1),
-                        ])
+        for c in puzzle.h_constraints:
+            if c.direction != ">":
+                continue
+            (i, j), (_, j2) = c.cell1, c.cell2
+            for v1 in range(1, N + 1):
+                for v2 in range(1, N + 1):
+                    clauses.append([
+                        ~Val(i, j, v1),
+                        ~Val(i, j2, v2),
+                        Less(v2, v1),
+                    ])
         return clauses
 
     # ==============================================================
@@ -503,48 +503,28 @@ class Axioms:
         clauses: list[Clause] = []
         values = range(1, N + 1)
 
-        # Horizontal constraints — shape (N, N-1)
-        for i in range(N):
-            for j in range(N - 1):
-                h = int(puzzle.h_constraints[i, j])
-                if h == 0:
-                    continue
+        # Horizontal constraints
+        for c in puzzle.h_constraints:
+            (i, j), (_, j2) = c.cell1, c.cell2
+            for v1 in values:
+                for v2 in values:
+                    # LessH: need v1 < v2, ban v1 >= v2
+                    if c.direction == "<" and v1 >= v2:
+                        clauses.append([~Val(i, j, v1), ~Val(i, j2, v2)])
+                    # GreaterH: need v1 > v2, ban v1 <= v2
+                    elif c.direction == ">" and v1 <= v2:
+                        clauses.append([~Val(i, j, v1), ~Val(i, j2, v2)])
 
-                for v1 in values:
-                    for v2 in values:
-                        # LessH: need v1 < v2, ban v1 >= v2
-                        if h == 1 and v1 >= v2:
-                            clauses.append([
-                                ~Val(i, j, v1),
-                                ~Val(i, j + 1, v2),
-                            ])
-                        # GreaterH: need v1 > v2, ban v1 <= v2
-                        elif h == -1 and v1 <= v2:
-                            clauses.append([
-                                ~Val(i, j, v1),
-                                ~Val(i, j + 1, v2),
-                            ])
-
-        # Vertical constraints — shape (N-1, N)
-        for i in range(N - 1):
-            for j in range(N):
-                v = int(puzzle.v_constraints[i, j])
-                if v == 0:
-                    continue
-
-                for v1 in values:
-                    for v2 in values:
-                        # LessV: need v1 < v2, ban v1 >= v2
-                        if v == 1 and v1 >= v2:
-                            clauses.append([
-                                ~Val(i, j, v1),
-                                ~Val(i + 1, j, v2),
-                            ])
-                        # GreaterV: need v1 > v2, ban v1 <= v2
-                        elif v == -1 and v1 <= v2:
-                            clauses.append([
-                                ~Val(i, j, v1),
-                                ~Val(i + 1, j, v2),
-                            ])
+        # Vertical constraints
+        for c in puzzle.v_constraints:
+            (i, j), (i2, _) = c.cell1, c.cell2
+            for v1 in values:
+                for v2 in values:
+                    # LessV: need v1 < v2, ban v1 >= v2
+                    if c.direction == "<" and v1 >= v2:
+                        clauses.append([~Val(i, j, v1), ~Val(i2, j, v2)])
+                    # GreaterV: need v1 > v2, ban v1 <= v2
+                    elif c.direction == ">" and v1 <= v2:
+                        clauses.append([~Val(i, j, v1), ~Val(i2, j, v2)])
 
         return clauses

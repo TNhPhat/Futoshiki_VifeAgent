@@ -1,4 +1,4 @@
-from constraint import BaseConstraint
+from .constraint import BaseConstraint
 class InequalityConstraint(BaseConstraint):
     def __init__(self, cell1, cell2, direction):
         self.cell1 = cell1  

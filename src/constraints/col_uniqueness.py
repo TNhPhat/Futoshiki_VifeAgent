@@ -1,4 +1,4 @@
-from constraint import BaseConstraint
+from .constraint import BaseConstraint
 class ColUniqueness(BaseConstraint):
     def __init__(self, col):
         self.col = col

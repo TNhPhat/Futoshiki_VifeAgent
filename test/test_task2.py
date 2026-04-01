@@ -13,6 +13,7 @@ from fol.kb import KnowledgeBase
 from fol.cnf_generator import CNFGenerator
 from fol.axioms import Axioms
 from core.puzzle import Puzzle
+from constraints.inequality_constraint import InequalityConstraint
 
 
 # ==================================================================
@@ -25,8 +26,8 @@ def make_empty_puzzle(N: int) -> Puzzle:
     return Puzzle(
         N=N,
         grid=np.zeros((N, N), dtype=int),
-        h_constraints=np.zeros((N, N - 1), dtype=int),
-        v_constraints=np.zeros((N - 1, N), dtype=int),
+        h_constraints=[],
+        v_constraints=[],
     )
 
 
@@ -35,28 +36,26 @@ def make_test_puzzle(N: int) -> Puzzle:
     Create a 4×4 test puzzle with known constraints.
 
     - Cell (0,0) = 1, Cell (1,1) = 2 (givens)
-    - h_constraint (0,0) = 1   → LessH
-    - h_constraint (1,2) = -1  → GreaterH
-    - v_constraint (0,1) = 1   → LessV
-    - v_constraint (2,0) = -1  → GreaterV
+    - h_constraint (0,0) → LessH:    cell(0,0) < cell(0,1)
+    - h_constraint (1,2) → GreaterH: cell(1,2) > cell(1,3)
+    - v_constraint (0,1) → LessV:    cell(0,1) < cell(1,1)
+    - v_constraint (2,0) → GreaterV: cell(2,0) > cell(3,0)
     """
     grid = np.zeros((N, N), dtype=int)
     grid[0, 0] = 1
     grid[1, 1] = 2
 
-    h_constraints = np.zeros((N, N - 1), dtype=int)
-    h_constraints[0, 0] = 1
-    h_constraints[1, 2] = -1
-
-    v_constraints = np.zeros((N - 1, N), dtype=int)
-    v_constraints[0, 1] = 1
-    v_constraints[2, 0] = -1
-
     return Puzzle(
         N=N,
         grid=grid,
-        h_constraints=h_constraints,
-        v_constraints=v_constraints,
+        h_constraints=[
+            InequalityConstraint(cell1=(0, 0), cell2=(0, 1), direction="<"),
+            InequalityConstraint(cell1=(1, 2), cell2=(1, 3), direction=">"),
+        ],
+        v_constraints=[
+            InequalityConstraint(cell1=(0, 1), cell2=(1, 1), direction="<"),
+            InequalityConstraint(cell1=(2, 0), cell2=(3, 0), direction=">"),
+        ],
     )
 
 

@@ -109,15 +109,16 @@ def test_puzzle_grid_size():
 
 
 def test_puzzle_array_shapes():
-    """grid, h_constraints, v_constraints have the correct numpy shapes."""
+    """grid has correct numpy shape; h/v_constraints are lists of InequalityConstraint."""
+    from constraints.inequality_constraint import InequalityConstraint
     puzzle = Parser().parse(FIXTURE)
     assert puzzle.grid.shape == (N, N), \
         f"grid shape: {puzzle.grid.shape}"
-    assert puzzle.h_constraints.shape == (N, N - 1), \
-        f"h_constraints shape: {puzzle.h_constraints.shape}"
-    assert puzzle.v_constraints.shape == (N - 1, N), \
-        f"v_constraints shape: {puzzle.v_constraints.shape}"
-    print("  [PASS] Array shapes correct")
+    assert isinstance(puzzle.h_constraints, list), "h_constraints should be a list"
+    assert isinstance(puzzle.v_constraints, list), "v_constraints should be a list"
+    assert all(isinstance(c, InequalityConstraint) for c in puzzle.h_constraints)
+    assert all(isinstance(c, InequalityConstraint) for c in puzzle.v_constraints)
+    print("  [PASS] grid shape correct, constraint types correct")
 
 
 def test_puzzle_given_cells():
@@ -156,19 +157,22 @@ def test_puzzle_is_not_complete():
 def test_puzzle_h_constraints():
     """get_h_constraint() matches the fixture's horizontal constraints."""
     puzzle = Parser().parse(FIXTURE)
-    assert puzzle.get_h_constraint(0, 0) == 1,  "LessH expected at (0,0)"
-    assert puzzle.get_h_constraint(0, 1) == 0,  "No constraint at (0,1)"
-    assert puzzle.get_h_constraint(2, 1) == -1, "GreaterH expected at (2,1)"
-    assert puzzle.get_h_constraint(1, 0) == 0,  "No constraint at (1,0)"
+    h00 = puzzle.get_h_constraint(0, 0)
+    assert h00 is not None and h00.direction == "<", "LessH expected at (0,0)"
+    assert puzzle.get_h_constraint(0, 1) is None, "No constraint at (0,1)"
+    h21 = puzzle.get_h_constraint(2, 1)
+    assert h21 is not None and h21.direction == ">", "GreaterH expected at (2,1)"
+    assert puzzle.get_h_constraint(1, 0) is None, "No constraint at (1,0)"
     print("  [PASS] h_constraints match fixture")
 
 
 def test_puzzle_v_constraints():
     """get_v_constraint() matches the fixture's vertical constraints."""
     puzzle = Parser().parse(FIXTURE)
-    assert puzzle.get_v_constraint(1, 1) == 1, "LessV expected at (1,1)"
-    assert puzzle.get_v_constraint(0, 0) == 0, "No constraint at (0,0)"
-    assert puzzle.get_v_constraint(1, 0) == 0, "No constraint at (1,0)"
+    v11 = puzzle.get_v_constraint(1, 1)
+    assert v11 is not None and v11.direction == "<", "LessV expected at (1,1)"
+    assert puzzle.get_v_constraint(0, 0) is None, "No constraint at (0,0)"
+    assert puzzle.get_v_constraint(1, 0) is None, "No constraint at (1,0)"
     print("  [PASS] v_constraints match fixture")
 
 

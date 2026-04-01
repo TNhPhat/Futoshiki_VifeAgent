@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 
+from constraints.inequality_constraint import InequalityConstraint
 from .puzzle import Puzzle
 
 
@@ -33,11 +34,11 @@ class Parser:
 
         N
         r0c0,r0c1,...,r0c(N-1)
-        ...                          ← N grid rows
+        ...                          <- N grid rows
         h_r0_0,...,h_r0_(N-2)
-        ...                          ← N horizontal-constraint rows (N-1 values each)
+        ...                          <- N horizontal-constraint rows (N-1 values each)
         v_r0_0,...,v_r0_(N-1)
-        ...                          ← N-1 vertical-constraint rows (N values each)
+        ...                          <- N-1 vertical-constraint rows (N values each)
 
     Grid encoding: ``0`` = empty cell; ``1..N`` = pre-filled clue.
     Constraint encoding: ``0`` = none; ``1`` = ``<``; ``-1`` = ``>``.
@@ -79,7 +80,7 @@ class Parser:
 
         if N < 2:
             raise ParseError(
-                f"N must be ≥ 2, got {N}", file_path, 1
+                f"N must be >= 2, got {N}", file_path, 1
             )
 
         # --- lines 1..N: grid rows ---
@@ -95,7 +96,7 @@ class Parser:
             lines, N, start=2 * N + 1, file_path=file_path
         )
 
-        self._validate(N, grid, h_constraints, v_constraints, file_path)
+        self._validate(N, grid, file_path)
 
         return Puzzle(
             N=N,
@@ -218,7 +219,6 @@ class Parser:
                     lines[start + offset], N, line_no, file_path
                 )
             )
-        # grid shape: (N, N)
         return np.array(rows, dtype=int)
 
     def _parse_h_constraints(
@@ -227,9 +227,13 @@ class Parser:
         N: int,
         start: int,
         file_path: str,
-    ) -> np.ndarray:
+    ) -> list[InequalityConstraint]:
         """
         Consume N lines of horizontal constraints starting at *start*.
+
+        Each row contains N-1 integer values: ``0`` = none, ``1`` = ``<``,
+        ``-1`` = ``>``.  Only non-zero entries produce an
+        ``InequalityConstraint``.
 
         Parameters
         ----------
@@ -244,20 +248,35 @@ class Parser:
 
         Returns
         -------
-        np.ndarray
-            Shape ``(N, N-1)``, dtype ``int``.
+        list of InequalityConstraint
+            One entry per non-zero horizontal constraint in the puzzle.
         """
         self._check_enough_lines(lines, start + N - 1, file_path)
-        rows: list[list[int]] = []
-        for offset in range(N):
-            line_no = start + offset + 1
-            rows.append(
-                self._parse_row(
-                    lines[start + offset], N - 1, line_no, file_path
-                )
+        constraints: list[InequalityConstraint] = []
+        for i in range(N):
+            line_no = start + i + 1
+            values = self._parse_row(
+                lines[start + i], N - 1, line_no, file_path
             )
-        # h_constraints shape: (N, N-1)
-        return np.array(rows, dtype=int)
+            self._validate_constraint_row(values, line_no, file_path)
+            for j, val in enumerate(values):
+                if val == 1:
+                    constraints.append(
+                        InequalityConstraint(
+                            cell1=(i, j),
+                            cell2=(i, j + 1),
+                            direction="<",
+                        )
+                    )
+                elif val == -1:
+                    constraints.append(
+                        InequalityConstraint(
+                            cell1=(i, j),
+                            cell2=(i, j + 1),
+                            direction=">",
+                        )
+                    )
+        return constraints
 
     def _parse_v_constraints(
         self,
@@ -265,9 +284,13 @@ class Parser:
         N: int,
         start: int,
         file_path: str,
-    ) -> np.ndarray:
+    ) -> list[InequalityConstraint]:
         """
         Consume N-1 lines of vertical constraints starting at *start*.
+
+        Each row contains N integer values: ``0`` = none, ``1`` = ``<``,
+        ``-1`` = ``>``.  Only non-zero entries produce an
+        ``InequalityConstraint``.
 
         Parameters
         ----------
@@ -282,31 +305,70 @@ class Parser:
 
         Returns
         -------
-        np.ndarray
-            Shape ``(N-1, N)``, dtype ``int``.
+        list of InequalityConstraint
+            One entry per non-zero vertical constraint in the puzzle.
         """
         self._check_enough_lines(lines, start + N - 2, file_path)
-        rows: list[list[int]] = []
-        for offset in range(N - 1):
-            line_no = start + offset + 1
-            rows.append(
-                self._parse_row(
-                    lines[start + offset], N, line_no, file_path
-                )
+        constraints: list[InequalityConstraint] = []
+        for i in range(N - 1):
+            line_no = start + i + 1
+            values = self._parse_row(
+                lines[start + i], N, line_no, file_path
             )
-        # v_constraints shape: (N-1, N)
-        return np.array(rows, dtype=int)
+            self._validate_constraint_row(values, line_no, file_path)
+            for j, val in enumerate(values):
+                if val == 1:
+                    constraints.append(
+                        InequalityConstraint(
+                            cell1=(i, j),
+                            cell2=(i + 1, j),
+                            direction="<",
+                        )
+                    )
+                elif val == -1:
+                    constraints.append(
+                        InequalityConstraint(
+                            cell1=(i, j),
+                            cell2=(i + 1, j),
+                            direction=">",
+                        )
+                    )
+        return constraints
+
+    def _validate_constraint_row(
+        self,
+        values: list[int],
+        line_no: int,
+        file_path: str,
+    ) -> None:
+        """
+        Raise ``ParseError`` if any value is not in {-1, 0, 1}.
+
+        Parameters
+        ----------
+        values : list of int
+            Parsed constraint values for one row.
+        line_no : int
+            1-based line number (for error reporting).
+        file_path : str
+            Source file path (for error reporting).
+        """
+        bad = [v for v in values if v not in (-1, 0, 1)]
+        if bad:
+            raise ParseError(
+                f"constraint values must be in {{-1, 0, 1}}; found: {bad}",
+                file_path,
+                line_no,
+            )
 
     def _validate(
         self,
         N: int,
         grid: np.ndarray,
-        h_constraints: np.ndarray,
-        v_constraints: np.ndarray,
         file_path: str,
     ) -> None:
         """
-        Validate array shapes and value ranges; raise ``ParseError`` on violation.
+        Validate the grid array; raise ``ParseError`` on violation.
 
         Parameters
         ----------
@@ -314,19 +376,14 @@ class Parser:
             Grid size.
         grid : np.ndarray
             Shape ``(N, N)``.
-        h_constraints : np.ndarray
-            Shape ``(N, N-1)``.
-        v_constraints : np.ndarray
-            Shape ``(N-1, N)``.
         file_path : str
             Source file path (for error reporting).
 
         Raises
         ------
         ParseError
-            If any value is out of the allowed range.
+            If any grid value is out of the allowed range.
         """
-        # grid values must be in {0, 1..N}
         if np.any(grid < 0) or np.any(grid > N):
             raise ParseError(
                 f"grid values must be in {{0..{N}}}; "
@@ -334,21 +391,6 @@ class Parser:
                 file_path,
                 0,
             )
-
-        # constraint values must be in {-1, 0, 1}
-        valid = {-1, 0, 1}
-        for name, arr in (
-            ("h_constraints", h_constraints),
-            ("v_constraints", v_constraints),
-        ):
-            bad = arr[~np.isin(arr, list(valid))]
-            if bad.size > 0:
-                raise ParseError(
-                    f"{name} values must be in {{-1, 0, 1}}; "
-                    f"found: {bad.tolist()}",
-                    file_path,
-                    0,
-                )
 
     def _check_enough_lines(
         self,

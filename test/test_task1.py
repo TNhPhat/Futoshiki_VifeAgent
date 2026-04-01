@@ -10,6 +10,7 @@ import numpy as np
 from fol.predicates import Literal, Val, Given, Less, LessH
 from fol.axioms import Axioms
 from core.puzzle import Puzzle
+from constraints.inequality_constraint import InequalityConstraint
 
 
 def test_literal_basics():
@@ -67,19 +68,17 @@ def make_test_puzzle(N: int) -> Puzzle:
     grid[0, 0] = 1
     grid[1, 1] = 2
 
-    h_constraints = np.zeros((N, N - 1), dtype=int)
-    h_constraints[0, 0] = 1   # LessH
-    h_constraints[1, 2] = -1  # GreaterH
-
-    v_constraints = np.zeros((N - 1, N), dtype=int)
-    v_constraints[0, 1] = 1   # LessV
-    v_constraints[2, 0] = -1  # GreaterV
-
     return Puzzle(
         N=N,
         grid=grid,
-        h_constraints=h_constraints,
-        v_constraints=v_constraints,
+        h_constraints=[
+            InequalityConstraint(cell1=(0, 0), cell2=(0, 1), direction="<"),  # LessH
+            InequalityConstraint(cell1=(1, 2), cell2=(1, 3), direction=">"),  # GreaterH
+        ],
+        v_constraints=[
+            InequalityConstraint(cell1=(0, 1), cell2=(1, 1), direction="<"),  # LessV
+            InequalityConstraint(cell1=(2, 0), cell2=(3, 0), direction=">"),  # GreaterV
+        ],
     )
 
 
@@ -185,9 +184,7 @@ def test_puzzle_axioms(N: int, puzzle: Puzzle):
     # LessV at (0,1): v1>=v2 pairs = 10
     # GreaterV at (2,0): v1<=v2 pairs = 10
     expected = 4 * (N * (N + 1) // 2)
-    assert len(a16) == expected, (
-        f"A16: {len(a16)} != {expected}"
-    )
+    assert len(a16) == expected, f"A16: {len(a16)} != {expected}"
     print(f"  [PASS] A16: {len(a16)} clauses")
 
 
@@ -198,9 +195,7 @@ def test_a16_correctness(N: int, puzzle: Puzzle):
     # LessH at (0,0): should ban v1 >= v2
     # e.g. (v1=2, v2=1) should produce ¬Val(0,0,2) ∨ ¬Val(0,1,1)
     target = [~Val(0, 0, 2), ~Val(0, 1, 1)]
-    found = any(
-        c == target for c in a16
-    )
+    found = any(c == target for c in a16)
     assert found, "A16: missing clause for LessH ban (2,1)"
 
     # (v1=1, v2=1) should also be banned (v1 >= v2)
