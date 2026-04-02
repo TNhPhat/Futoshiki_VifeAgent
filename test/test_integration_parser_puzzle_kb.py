@@ -1,5 +1,5 @@
 """
-Integration test: Parser -> Puzzle -> KnowledgeBase pipeline.
+Integration test: Parser -> Puzzle -> CNFClauseKnowledgeBase pipeline.
 
 Fixture: test/fixtures/input_3x3.txt
   N = 3
@@ -177,7 +177,7 @@ def test_puzzle_v_constraints():
 
 
 # ===========================================================================
-# Stage 2: Puzzle -> KnowledgeBase
+# Stage 2: Puzzle -> CNFClauseKnowledgeBase
 # ===========================================================================
 
 
@@ -281,7 +281,7 @@ def test_kb_get_clauses_returns_all():
 
 
 if __name__ == "__main__":
-    print("=== Integration: Parser -> Puzzle -> KnowledgeBase ===\n")
+    print("=== Integration: Parser -> Puzzle -> CNFClauseKnowledgeBase ===\n")
 
     print("Stage 1 — Parser -> Puzzle:")
     test_parser_returns_puzzle()
@@ -294,7 +294,7 @@ if __name__ == "__main__":
     test_puzzle_h_constraints()
     test_puzzle_v_constraints()
 
-    print("\nStage 2 — Puzzle -> KnowledgeBase:")
+    print("\nStage 2 — Puzzle -> CNFClauseKnowledgeBase:")
     test_kb_total_clause_count()
     test_kb_total_fact_count()
     test_kb_given_clues_are_known()

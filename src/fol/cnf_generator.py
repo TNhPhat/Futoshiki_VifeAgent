@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from .axioms import Axioms
-from .kb import KnowledgeBase
+from .kb import CNFClauseKnowledgeBase
 
 if TYPE_CHECKING:
     from core.puzzle import Puzzle
@@ -15,17 +15,17 @@ class CNFGenerator:
 
     This class acts as a facade over :class:`Axioms`: its single public
     method :meth:`generate` calls every axiom method, aggregates the
-    resulting clauses, and returns them inside a :class:`KnowledgeBase`.
+    resulting clauses, and returns them inside a :class:`CNFClauseKnowledgeBase`.
     """
 
     @staticmethod
-    def generate(puzzle: Puzzle) -> KnowledgeBase:
+    def generate(puzzle: Puzzle) -> CNFClauseKnowledgeBase:
         """
         Build a complete CNF knowledge base for the given puzzle.
 
         Calls ``Axioms.a1_*`` through ``Axioms.a16_*`` in order,
         collects all ground clauses, and stores them in a new
-        :class:`KnowledgeBase`.
+        :class:`CNFClauseKnowledgeBase`.
 
         Parameters
         ----------
@@ -35,12 +35,12 @@ class CNFGenerator:
 
         Returns
         -------
-        KnowledgeBase
+        CNFClauseKnowledgeBase
             A populated knowledge base containing every ground CNF
             clause required to encode the puzzle.
         """
         N = puzzle.N
-        kb = KnowledgeBase()
+        kb = CNFClauseKnowledgeBase()
 
         # ── Cell constraints ──────────────────────────────────────
         kb.add_clauses(Axioms.a1_cell_existence(N))

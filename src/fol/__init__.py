@@ -10,7 +10,7 @@ from .predicates import (
     Less,
 )
 from .axioms import Axioms
-from .kb import KnowledgeBase
+from .kb import CNFClauseKnowledgeBase
 from .cnf_generator import CNFGenerator
 from .unifier import Unifier
 __all__ = [
@@ -24,6 +24,6 @@ __all__ = [
     "GreaterV",
     "Less",
     "Axioms",
-    "KnowledgeBase",
+    "CNFClauseKnowledgeBase",
     "CNFGenerator",
 ]
