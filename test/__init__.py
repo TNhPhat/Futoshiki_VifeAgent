@@ -10,7 +10,7 @@ from src.fol.predicates import (
     Less,
 )
 from src.fol.axioms import Axioms
-from src.fol.kb import KnowledgeBase
+from src.fol.kb import CNFClauseKnowledgeBase
 from src.fol.cnf_generator import CNFGenerator
 
 __all__ = [
@@ -24,6 +24,6 @@ __all__ = [
     "GreaterV",
     "Less",
     "Axioms",
-    "KnowledgeBase",
+    "CNFClauseKnowledgeBase",
     "CNFGenerator",
 ]
