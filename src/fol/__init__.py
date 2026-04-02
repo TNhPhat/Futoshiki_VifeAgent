@@ -12,7 +12,7 @@ from .predicates import (
 from .axioms import Axioms
 from .kb import KnowledgeBase
 from .cnf_generator import CNFGenerator
-
+from .unifier import Unifier
 __all__ = [
     "Literal",
     "Clause",
