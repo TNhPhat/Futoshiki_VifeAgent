@@ -23,7 +23,7 @@ class Literal:
     """
 
     name: str
-    args: tuple[int, ...]
+    args: tuple
     negated: bool = False
 
     def __invert__(self) -> Literal:
