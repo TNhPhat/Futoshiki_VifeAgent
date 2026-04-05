@@ -199,6 +199,117 @@ def test_3x3_fixture():
     )
 
 
+def test_4x4_with_givens():
+    """4×4 puzzle with 12 givens (4 empty cells = 4^4=256 combinations).
+
+    Solution (cyclic Latin square):
+        1 2 3 4
+        2 3 4 1
+        3 4 1 2
+        4 1 2 3
+    One value per row/column is left empty; each is uniquely determined.
+    """
+    puzzle = make_puzzle(4, [
+        [1, 2, 3, 0],
+        [2, 3, 0, 1],
+        [3, 0, 1, 2],
+        [0, 1, 2, 3],
+    ])
+    solution, stats = BruteForceSolver().solve(puzzle)
+    assert solution is not None
+    assert _check_solution(puzzle, solution)
+    expected = np.array([
+        [1, 2, 3, 4],
+        [2, 3, 4, 1],
+        [3, 4, 1, 2],
+        [4, 1, 2, 3],
+    ], dtype=int)
+    assert np.array_equal(solution.grid, expected)
+
+
+def test_4x4_with_constraints():
+    """4×4 with 8 givens and two inequality constraints.
+
+    Base solution:
+        1 2 3 4
+        2 3 4 1
+        3 4 1 2
+        4 1 2 3
+    Constraints added:
+        h(0,0): grid(0,0) < grid(0,1)  → 1 < 2  (satisfied)
+        v(0,0): grid(0,0) < grid(1,0)  → 1 < 2  (satisfied)
+    """
+    puzzle = make_puzzle(4, [
+        [1, 2, 0, 0],
+        [2, 0, 4, 0],
+        [0, 4, 0, 2],
+        [4, 0, 2, 0],
+    ], h=[(0, 0, "<")], v=[(0, 0, "<")])
+    solution, stats = BruteForceSolver().solve(puzzle)
+    assert solution is not None
+    assert _check_solution(puzzle, solution)
+    assert solution.grid[0, 0] < solution.grid[0, 1]
+    assert solution.grid[0, 0] < solution.grid[1, 0]
+
+
+def test_5x5_with_givens():
+    """5×5 puzzle with 20 givens (5 empty cells = 5^5=3125 combinations).
+
+    Solution (cyclic Latin square):
+        1 2 3 4 5
+        2 3 4 5 1
+        3 4 5 1 2
+        4 5 1 2 3
+        5 1 2 3 4
+    One cell per row/column (main anti-diagonal) is left empty.
+    """
+    puzzle = make_puzzle(5, [
+        [1, 2, 3, 4, 0],
+        [2, 3, 4, 0, 1],
+        [3, 4, 0, 1, 2],
+        [4, 0, 1, 2, 3],
+        [0, 1, 2, 3, 4],
+    ])
+    solution, stats = BruteForceSolver().solve(puzzle)
+    assert solution is not None
+    assert _check_solution(puzzle, solution)
+    expected = np.array([
+        [1, 2, 3, 4, 5],
+        [2, 3, 4, 5, 1],
+        [3, 4, 5, 1, 2],
+        [4, 5, 1, 2, 3],
+        [5, 1, 2, 3, 4],
+    ], dtype=int)
+    assert np.array_equal(solution.grid, expected)
+
+
+def test_5x5_with_constraints():
+    """5×5 with 16 givens and inequality constraints.
+
+    Base solution:
+        1 2 3 4 5
+        2 3 4 5 1
+        3 4 5 1 2
+        4 5 1 2 3
+        5 1 2 3 4
+    Constraints:
+        h(0,0): grid(0,0) < grid(0,1)  → 1 < 2
+        v(3,4): grid(3,4) < grid(4,4)  → 3 < 4
+    """
+    puzzle = make_puzzle(5, [
+        [1, 2, 3, 4, 0],
+        [2, 3, 4, 0, 1],
+        [3, 4, 0, 1, 2],
+        [4, 0, 1, 2, 0],
+        [0, 1, 2, 3, 4],
+    ], h=[(0, 0, "<")], v=[(3, 4, "<")])
+    solution, stats = BruteForceSolver().solve(puzzle)
+    assert solution is not None
+    assert _check_solution(puzzle, solution)
+    assert solution.grid[0, 0] < solution.grid[0, 1]
+    assert solution.grid[3, 4] < solution.grid[4, 4]
+
+
 # ===========================================================================
 # Group 4 — Solution properties
 # ===========================================================================
@@ -342,6 +453,10 @@ if __name__ == "__main__":
         test_3x3_with_h_inequality,
         test_3x3_with_v_inequality,
         test_3x3_fixture,
+        test_4x4_with_givens,
+        test_4x4_with_constraints,
+        test_5x5_with_givens,
+        test_5x5_with_constraints,
         test_no_empty_cells,
         test_row_uniqueness,
         test_col_uniqueness,
