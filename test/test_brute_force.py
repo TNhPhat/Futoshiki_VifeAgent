@@ -43,8 +43,8 @@ FIXTURE_SOLUTION = np.array([
 
 
 def make_puzzle(N: int, grid: list[list[int]],
-                h: list[tuple] = None,
-                v: list[tuple] = None) -> Puzzle:
+                h: list[tuple] = [],
+                v: list[tuple] = []) -> Puzzle:
     """Build a Puzzle from plain lists. h/v are (i,j,direction) triples."""
     h_constraints = [
         InequalityConstraint(cell1=(r, c), cell2=(r, c + 1), direction=d)
