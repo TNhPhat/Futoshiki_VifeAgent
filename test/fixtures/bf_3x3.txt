@@ -1,0 +1,15 @@
+# Brute-force test fixture: 3x3 Futoshiki puzzle with unique solution
+# Grid (0 = empty cell)
+# Givens: (0,0)=1, (0,2)=3
+# Unique solution: [1,2,3 / 2,3,1 / 3,1,2]
+3
+1,0,3
+0,0,0
+0,0,0
+# Horizontal constraints: h(1,0) means grid(1,0) < grid(1,1)
+0,0
+1,0
+0,0
+# Vertical constraints: none
+0,0,0
+0,0,0

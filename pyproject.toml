@@ -9,3 +9,12 @@ dependencies = [
     "pygame>=2.0.1",
     "z3-solver>=4.12.4.0",
 ]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["test"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+]
