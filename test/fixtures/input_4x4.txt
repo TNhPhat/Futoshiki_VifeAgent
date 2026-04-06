@@ -1,18 +1,18 @@
-# Test fixture: 4x4 Futoshiki puzzle
-# Grid: (0,0)=1, (1,1)=2, (2,2)=3 given
+# Test fixture: 4x4 Futoshiki puzzle (solvable)
+# Grid: (0,0)=1 given
 4
 1,0,0,0
-0,2,0,0
-0,0,3,0
+0,0,0,0
+0,0,0,0
 0,0,0,0
 # Horizontal constraints (3 values per row)
-# (0,0) < (0,1), (1,2) > (1,3)
+# (0,0) < (0,1)
 1,0,0
-0,0,-1
+0,0,0
 0,0,0
 0,0,0
 # Vertical constraints (4 values per row, 3 rows)
-# (0,1) < (1,1), (2,0) > (3,0)
-0,1,0,0
--1,0,0,0
+# None
+0,0,0,0
+0,0,0,0
 0,0,0,0

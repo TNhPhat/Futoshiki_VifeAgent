@@ -39,7 +39,7 @@ class HornClauseKnowledgeBase:
         self.add_clause(rule)
     
     def get_clause_for(self,predicate_name: str) -> List[HornClause]:
-        return self._index[predicate_name]
+        return self._index.get(predicate_name, [])
 
     @property
     def clause_count(self) -> int:
