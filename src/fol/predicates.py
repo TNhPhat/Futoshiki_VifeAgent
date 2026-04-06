@@ -67,18 +67,18 @@ Clause = list[Literal]
 # ------------------------------------------------------------------
 
 
-def Val(i: int, j: int, v: int) -> Literal:
+def Val(i, j, v) -> Literal:
     """
     Create a ``Val(i, j, v)`` literal — cell (i,j) holds value v.
 
     Parameters
     ----------
-    i : int
-        Row index (0-based).
-    j : int
-        Column index (0-based).
-    v : int
-        Cell value (1-based, in range 1..N).
+    i : int or str
+        Row index (0-based integer or variable string).
+    j : int or str
+        Column index (0-based integer or variable string).
+    v : int or str
+        Cell value (1-based integer or variable string).
 
     Returns
     -------
@@ -193,16 +193,16 @@ def GreaterV(i: int, j: int) -> Literal:
     return Literal("GreaterV", (i, j))
 
 
-def Less(v1: int, v2: int) -> Literal:
+def Less(v1, v2) -> Literal:
     """
     Create a ``Less(v1, v2)`` literal — numerical relation v1 < v2.
 
     Parameters
     ----------
-    v1 : int
-        First value (1-based).
-    v2 : int
-        Second value (1-based).
+    v1 : int or str
+        First value (1-based integer or variable string).
+    v2 : int or str
+        Second value (1-based integer or variable string).
 
     Returns
     -------
@@ -210,3 +210,24 @@ def Less(v1: int, v2: int) -> Literal:
         ``Literal("Less", (v1, v2))``.
     """
     return Literal("Less", (v1, v2))
+
+
+def Diff(a, b) -> Literal:
+    """
+    Create a ``Diff(a, b)`` literal — inequality relation a != b.
+
+    Used in Prolog-style rules to express that two values are different.
+    
+    Parameters
+    ----------
+    a : int or str
+        First value (integer or variable string).
+    b : int or str
+        Second value (integer or variable string).
+
+    Returns
+    -------
+    Literal
+        ``Literal("Diff", (a, b))``.
+    """
+    return Literal("Diff", (a, b))
