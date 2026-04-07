@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 import numpy as np
 from math import comb
 from fol.predicates import Literal, Val, Less
-from fol.kb import KnowledgeBase
+from fol.kb import CNFClauseKnowledgeBase
 from fol.cnf_generator import CNFGenerator
 from fol.axioms import Axioms
 from core.puzzle import Puzzle
@@ -65,8 +65,8 @@ def make_test_puzzle(N: int) -> Puzzle:
 
 
 def test_kb_basics():
-    """Test KnowledgeBase add, len, repr, unit-fact extraction."""
-    kb = KnowledgeBase()
+    """Test CNFClauseKnowledgeBase add, len, repr, unit-fact extraction."""
+    kb = CNFClauseKnowledgeBase()
     assert len(kb) == 0
     assert len(kb.facts) == 0
 
@@ -90,7 +90,7 @@ def test_kb_basics():
 
 def test_kb_queries():
     """Test get_unit_clauses and get_clauses_with."""
-    kb = KnowledgeBase()
+    kb = CNFClauseKnowledgeBase()
     kb.add_clause([Val(0, 0, 1)])
     kb.add_clause([Val(0, 0, 1), Val(0, 0, 2)])
     kb.add_clause([~Val(0, 0, 1), ~Val(0, 0, 2)])
@@ -112,7 +112,7 @@ def test_kb_queries():
 
 def test_kb_repr():
     """Test repr output."""
-    kb = KnowledgeBase()
+    kb = CNFClauseKnowledgeBase()
     kb.add_clause([Val(0, 0, 1)])
     kb.add_clause([Less(1, 2)])
     r = repr(kb)
@@ -123,7 +123,7 @@ def test_kb_repr():
 
 def test_kb_add_clauses_bulk():
     """Test add_clauses bulk method."""
-    kb = KnowledgeBase()
+    kb = CNFClauseKnowledgeBase()
     clauses = [[Val(0, 0, v)] for v in range(1, 5)]
     kb.add_clauses(clauses)
     assert len(kb) == 4
@@ -258,7 +258,7 @@ def test_generate_preserves_axiom_breakdown():
 if __name__ == "__main__":
     print("=== Task 2 Tests ===\n")
 
-    print("KnowledgeBase:")
+    print("CNFClauseKnowledgeBase:")
     test_kb_basics()
     test_kb_queries()
     test_kb_repr()

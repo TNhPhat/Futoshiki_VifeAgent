@@ -6,7 +6,7 @@ from .predicates import Clause, Literal
 
 
 @dataclass
-class KnowledgeBase:
+class CNFClauseKnowledgeBase:
     """
     A propositional CNF knowledge base.
 
@@ -183,9 +183,9 @@ class KnowledgeBase:
         Returns
         -------
         str
-            e.g. ``"KnowledgeBase(clauses=352, facts=8)"``.
+            e.g. ``"CNFClauseKnowledgeBase(clauses=352, facts=8)"``.
         """
         return (
-            f"KnowledgeBase(clauses={len(self.clauses)}, "
+            f"CNFClauseKnowledgeBase(clauses={len(self.clauses)}, "
             f"facts={len(self.facts)})"
         )

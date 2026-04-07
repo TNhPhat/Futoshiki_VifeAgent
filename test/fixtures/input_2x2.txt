@@ -1,0 +1,10 @@
+# Test fixture: 2x2 Futoshiki puzzle
+# Grid: (0,0)=1 given, rest empty
+2
+1,0
+0,0
+# Horizontal constraints (1 value per row): (0,0) < (0,1)
+1
+0
+# Vertical constraints (2 values per row, 1 row): (0,1) > (1,1)
+0,-1

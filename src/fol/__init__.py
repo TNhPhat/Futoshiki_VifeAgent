@@ -8,11 +8,14 @@ from .predicates import (
     LessV,
     GreaterV,
     Less,
+    Diff,
 )
 from .axioms import Axioms
-from .kb import KnowledgeBase
+from .kb import CNFClauseKnowledgeBase
 from .cnf_generator import CNFGenerator
-
+from .unifier import Unifier,Substitution
+from .horn_kb import HornClauseKnowledgeBase, HornClause
+from .horn_generator import HornClauseGenerator
 __all__ = [
     "Literal",
     "Clause",
@@ -24,6 +27,6 @@ __all__ = [
     "GreaterV",
     "Less",
     "Axioms",
-    "KnowledgeBase",
+    "CNFClauseKnowledgeBase",
     "CNFGenerator",
 ]
