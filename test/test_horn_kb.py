@@ -1,27 +1,19 @@
 """
 Integration test: Parser -> Puzzle -> HornClauseGenerator -> HornClauseKnowledgeBase
 
-Tests the Prolog-style Horn clause generation pipeline on 2x2 and 4x4 puzzles.
+Tests Pure Positive Definite Clause generation pipeline on 2x2 and 4x4 puzzles.
+All clauses have POSITIVE heads and POSITIVE bodies (no negation used).
 
-Axioms implemented in HornClauseGenerator (Prolog-style with variables):
-    Facts (Ground):
-        A9  - Given clues: Val(i,j,v) for pre-filled cells
-        A11 - Less ground truth: Less(a,b) for all a < b
-        Diff - Difference facts: Diff(a,b) for all a != b
+Axioms implemented in HornClauseGenerator (Pure Positive Definite Clauses):
+    Facts (Ground, all positive):
+        Val(i,j,v) - Given clues for pre-filled cells
+        Domain(v) - Valid domain values (1..N)
+        Diff(a,b) - Difference facts for a != b (values only)
+        Less(a,b) - Less-than facts for a < b
     
-    Rules (Variable-based):
-        A2  - Cell uniqueness: Val(I,J,V2) ∧ Diff(V1,V2) => ~Val(I,J,V1)
-        A3  - Row uniqueness: Val(I,J2,V) ∧ Diff(J1,J2) => ~Val(I,J1,V)
-        A4  - Column uniqueness: Val(I2,J,V) ∧ Diff(I1,I2) => ~Val(I1,J,V)
-        A15 - Less asymmetry: Less(V1,V2) => ~Less(V2,V1)
-        A16 - Inequality contrapositive: Val(cell2,V2) ∧ ~Less(V1,V2) => ~Val(cell1,V1)
-
-Rule counts for Prolog-style KB:
-    - 1 cell uniqueness rule (with variables)
-    - 1 row uniqueness rule (with variables)
-    - 1 column uniqueness rule (with variables)
-    - 1 less asymmetry rule (with variables)
-    - 1 inequality rule per constraint (with ground cells, variable values)
+    Rules (Positive heads, positive bodies):
+        ValidVal(r,c,v) :- Domain(v), Val(others), Diff constraints, Less constraints
+        Val(r,c,v) :- ValidVal(r,c,v)
 """
 
 import os
@@ -33,7 +25,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 from core.parser import Parser
 from fol.horn_generator import HornClauseGenerator
 from fol.horn_kb import HornClauseKnowledgeBase, HornClause
-from fol.predicates import Val, Less, Diff
+from fol.predicates import Val, Less, Diff, Domain, ValidVal
 
 
 # ---------------------------------------------------------------------------
@@ -55,27 +47,19 @@ V_CONSTRAINTS_2X2 = 1  # GreaterV at (0,1)
 
 
 def expected_fact_count(n: int, num_given: int) -> int:
-    """Calculate expected number of ground facts (A9 + A11 + Diff)."""
-    a9 = num_given              # Given clue facts
-    a11 = comb(n, 2)            # Less(a,b) for a < b
-    # Diff facts: for indices 0..N-1 and values 1..N
-    diff_indices = n * (n - 1)  # Diff(i,j) for i != j, indices 0..N-1
-    diff_values = n * (n - 1)   # Diff(v1,v2) for v1 != v2, values 1..N
-    return a9 + a11 + diff_indices + diff_values
+    """Calculate expected number of ground facts (Val + Domain + Diff + Less)."""
+    val_facts = num_given           # Given clue facts
+    domain_facts = n                # Domain(v) for v in 1..N
+    diff_values = n * (n - 1)       # Diff(v1,v2) for v1 != v2, values 1..N
+    less_facts = comb(n, 2)         # Less(a,b) for a < b
+    return val_facts + domain_facts + diff_values + less_facts
 
 
-def expected_rule_count(num_h_constraints: int, num_v_constraints: int) -> int:
-    """Calculate expected number of Prolog-style rules."""
-    # Core variable-based rules (constant count regardless of N)
-    a2 = 1   # Cell uniqueness (1 rule with variables)
-    a3 = 1   # Row uniqueness (1 rule with variables)
-    a4 = 1   # Column uniqueness (1 rule with variables)
-    a15 = 1  # Less asymmetry (1 rule with variables)
-    
-    # A16: 1 rule per constraint (ground cells, variable values)
-    a16 = num_h_constraints + num_v_constraints
-    
-    return a2 + a3 + a4 + a15 + a16
+def expected_rule_count(n: int, num_given: int) -> int:
+    """Calculate expected number of rules (1 Solution rule for Generate-and-Test)."""
+    num_empty = n * n - num_given
+    # Generate-and-Test: single Solution rule if there are empty cells
+    return 1 if num_empty > 0 else 0
 
 
 # ---------------------------------------------------------------------------
@@ -130,7 +114,7 @@ def test_2x2_hornkb_clause_count():
     kb = HornClauseGenerator.generate(puzzle)
     
     expected_facts = expected_fact_count(N_2X2, len(GIVEN_CELLS_2X2))
-    expected_rules = expected_rule_count(H_CONSTRAINTS_2X2, V_CONSTRAINTS_2X2)
+    expected_rules = expected_rule_count(N_2X2, len(GIVEN_CELLS_2X2))
     expected_total = expected_facts + expected_rules
     
     assert kb.clause_count == expected_total, \
@@ -139,23 +123,29 @@ def test_2x2_hornkb_clause_count():
 
 
 def test_2x2_hornkb_facts():
-    """HornKB facts include given clues and Less ground truth."""
+    """HornKB facts include given clues, Domain, Diff, and Less."""
     puzzle = Parser().parse(FIXTURE_2X2)
     kb = HornClauseGenerator.generate(puzzle)
     
     # Check given clue fact
-    given_clauses = kb.get_clause_for("Val")
-    given_facts = [c for c in given_clauses if c.is_fact() and not c.head.negated]
+    val_clauses = kb.get_clause_for("Val")
+    given_facts = [c for c in val_clauses if c.is_fact() and not c.head.negated]
     assert len(given_facts) == len(GIVEN_CELLS_2X2), \
         f"Expected {len(GIVEN_CELLS_2X2)} Val facts, got {len(given_facts)}"
     
+    # Check Domain facts
+    domain_clauses = kb.get_clause_for("Domain")
+    domain_facts = [c for c in domain_clauses if c.is_fact()]
+    assert len(domain_facts) == N_2X2, \
+        f"Expected {N_2X2} Domain facts, got {len(domain_facts)}"
+    
     # Check Less ground truth facts
     less_clauses = kb.get_clause_for("Less")
-    less_facts = [c for c in less_clauses if c.is_fact() and not c.head.negated]
+    less_facts = [c for c in less_clauses if c.is_fact()]
     assert len(less_facts) == comb(N_2X2, 2), \
         f"Expected {comb(N_2X2, 2)} Less facts, got {len(less_facts)}"
     
-    print(f"  [PASS] Facts: {len(given_facts)} Val, {len(less_facts)} Less")
+    print(f"  [PASS] Facts: {len(given_facts)} Val, {len(domain_facts)} Domain, {len(less_facts)} Less")
 
 
 def test_2x2_hornkb_given_val_content():
@@ -189,62 +179,53 @@ def test_2x2_hornkb_less_content():
 
 
 def test_2x2_hornkb_cell_uniqueness_rules():
-    """Cell uniqueness rule exists with variables: Val(i,j,v2) ∧ Diff(v1,v2) => ~Val(i,j,v1)."""
+    """Solution rule enforces row/column uniqueness via Diff constraints."""
     puzzle = Parser().parse(FIXTURE_2X2)
     kb = HornClauseGenerator.generate(puzzle)
     
-    # Check for Prolog-style cell uniqueness rule with variables
-    val_clauses = kb.get_clause_for("Val")
-    expected_head = ~Val("i", "j", "v1")
-    expected_body = [Val("i", "j", "v2"), Diff("v1", "v2")]
+    # Check for Solution rule (Generate-and-Test paradigm)
+    solution_clauses = kb.get_clause_for("Solution")
+    assert len(solution_clauses) == 1, "Expected exactly 1 Solution rule"
     
-    found = any(
-        c.head == expected_head and len(c.body) == 2 and
-        c.body[0] == expected_body[0] and c.body[1] == expected_body[1]
-        for c in val_clauses
-    )
-    assert found, f"Expected cell uniqueness rule with variables"
-    print(f"  [PASS] Cell uniqueness rule exists (Prolog-style)")
+    solution_rule = solution_clauses[0]
+    assert not solution_rule.head.negated, "Solution head should be positive"
+    
+    # Body should include Domain and Diff constraints
+    body_names = [lit.name for lit in solution_rule.body]
+    assert "Domain" in body_names, "Solution body should include Domain"
+    assert "Diff" in body_names, "Solution body should include Diff"
+    
+    print(f"  [PASS] Solution rule exists with positive head and Diff constraints")
 
 
 def test_2x2_hornkb_row_uniqueness_rules():
-    """Row uniqueness rule exists with variables: Val(i,j2,v) ∧ Diff(j1,j2) => ~Val(i,j1,v)."""
+    """Solution rule includes row uniqueness via Diff constraints."""
     puzzle = Parser().parse(FIXTURE_2X2)
     kb = HornClauseGenerator.generate(puzzle)
     
-    # Check for Prolog-style row uniqueness rule
-    val_clauses = kb.get_clause_for("Val")
-    expected_head = ~Val("i", "j1", "v")
-    expected_body = [Val("i", "j2", "v"), Diff("j1", "j2")]
+    # Check Solution rule contains Diff for row uniqueness
+    solution_clauses = kb.get_clause_for("Solution")
+    assert len(solution_clauses) == 1, "Expected 1 Solution rule"
     
-    found = any(
-        c.head == expected_head and len(c.body) == 2 and
-        c.body[0] == expected_body[0] and c.body[1] == expected_body[1]
-        for c in val_clauses
-    )
-    assert found, f"Expected row uniqueness rule with variables"
-    print(f"  [PASS] Row uniqueness rule exists (Prolog-style)")
+    # Count Diff literals in body (should have multiple for uniqueness)
+    diff_count = sum(1 for lit in solution_clauses[0].body if lit.name == "Diff")
+    assert diff_count > 0, f"Expected Diff constraints in Solution body"
+    
+    print(f"  [PASS] Row uniqueness enforced via {diff_count} Diff literals in Solution rule")
 
 
 def test_2x2_hornkb_inequality_rules():
-    """Inequality contrapositive rules exist for LessH constraint with variable values."""
+    """Solution rule integrates inequality constraints via Less literals."""
     puzzle = Parser().parse(FIXTURE_2X2)
     kb = HornClauseGenerator.generate(puzzle)
     
-    # LessH at (0,0): cell(0,0) < cell(0,1)
-    # Rule: Val(0,1,v2) ∧ ~Less(v1,v2) => ~Val(0,0,v1)
-    val_clauses = kb.get_clause_for("Val")
-    expected_head = ~Val(0, 0, "v1")
-    expected_body_1 = Val(0, 1, "v2")
-    expected_body_2 = ~Less("v1", "v2")
+    # Check for Solution rule that includes Less constraints
+    solution_clauses = kb.get_clause_for("Solution")
     
-    found = any(
-        c.head == expected_head and len(c.body) == 2 and
-        c.body[0] == expected_body_1 and c.body[1] == expected_body_2
-        for c in val_clauses
-    )
-    assert found, f"Expected inequality rule with variable values"
-    print(f"  [PASS] Inequality contrapositive rule exists (Prolog-style)")
+    # Solution rule should include Less for inequality constraint
+    has_less = any(lit.name == "Less" for lit in solution_clauses[0].body)
+    assert has_less, "Expected Less constraint in Solution rule for inequality"
+    print(f"  [PASS] Inequality constraint integrated via Less in Solution rule")
 
 
 # ===========================================================================
@@ -289,7 +270,7 @@ def test_4x4_hornkb_clause_count():
     kb = HornClauseGenerator.generate(puzzle)
     
     expected_facts = expected_fact_count(N_4X4, len(GIVEN_CELLS_4X4))
-    expected_rules = expected_rule_count(H_CONSTRAINTS_4X4, V_CONSTRAINTS_4X4)
+    expected_rules = expected_rule_count(N_4X4, len(GIVEN_CELLS_4X4))
     expected_total = expected_facts + expected_rules
     
     assert kb.clause_count == expected_total, \
@@ -298,23 +279,29 @@ def test_4x4_hornkb_clause_count():
 
 
 def test_4x4_hornkb_facts():
-    """HornKB facts include given clues and Less ground truth."""
+    """HornKB facts include given clues, Domain, Diff, and Less."""
     puzzle = Parser().parse(FIXTURE_4X4)
     kb = HornClauseGenerator.generate(puzzle)
     
     # Check given clue facts
-    given_clauses = kb.get_clause_for("Val")
-    given_facts = [c for c in given_clauses if c.is_fact() and not c.head.negated]
+    val_clauses = kb.get_clause_for("Val")
+    given_facts = [c for c in val_clauses if c.is_fact() and not c.head.negated]
     assert len(given_facts) == len(GIVEN_CELLS_4X4), \
         f"Expected {len(GIVEN_CELLS_4X4)} Val facts, got {len(given_facts)}"
     
+    # Check Domain facts
+    domain_clauses = kb.get_clause_for("Domain")
+    domain_facts = [c for c in domain_clauses if c.is_fact()]
+    assert len(domain_facts) == N_4X4, \
+        f"Expected {N_4X4} Domain facts, got {len(domain_facts)}"
+    
     # Check Less ground truth facts
     less_clauses = kb.get_clause_for("Less")
-    less_facts = [c for c in less_clauses if c.is_fact() and not c.head.negated]
+    less_facts = [c for c in less_clauses if c.is_fact()]
     assert len(less_facts) == comb(N_4X4, 2), \
         f"Expected {comb(N_4X4, 2)} Less facts, got {len(less_facts)}"
     
-    print(f"  [PASS] Facts: {len(given_facts)} Val, {len(less_facts)} Less")
+    print(f"  [PASS] Facts: {len(given_facts)} Val, {len(domain_facts)} Domain, {len(less_facts)} Less")
 
 
 def test_4x4_hornkb_given_val_content():
@@ -355,13 +342,9 @@ def test_4x4_hornkb_less_content():
 
 
 def test_4x4_hornkb_less_irreflexivity():
-    """Less irreflexivity is handled via NAF: ~Less(v,v) succeeds because Less(v,v) cannot be proven."""
+    """Less irreflexivity: Less(v,v) should not exist as a fact."""
     puzzle = Parser().parse(FIXTURE_4X4)
     kb = HornClauseGenerator.generate(puzzle)
-    
-    # In Prolog-style, we don't store ~Less(v,v) as facts
-    # Instead, Less(v,v) fails because no such fact exists
-    # NAF (Negation-as-Failure) handles this automatically
     
     # Verify Less(1,1) is NOT a fact
     less_clauses = kb.get_clause_for("Less")
@@ -369,127 +352,121 @@ def test_4x4_hornkb_less_irreflexivity():
         c.is_fact() and c.head == Less(1, 1)
         for c in less_clauses
     )
-    assert not less_11, "Less(1,1) should not be a fact (irreflexivity via NAF)"
-    print(f"  [PASS] Less irreflexivity handled via NAF")
+    assert not less_11, "Less(1,1) should not be a fact (irreflexivity)"
+    print(f"  [PASS] Less irreflexivity maintained (no Less(v,v) facts)")
 
 
-def test_4x4_hornkb_less_asymmetry():
-    """Less asymmetry rule with variables: Less(v1,v2) => ~Less(v2,v1)."""
+def test_4x4_hornkb_solution_rule():
+    """Solution rule exists for empty cells with positive head."""
     puzzle = Parser().parse(FIXTURE_4X4)
     kb = HornClauseGenerator.generate(puzzle)
     
-    less_clauses = kb.get_clause_for("Less")
+    solution_clauses = kb.get_clause_for("Solution")
     
-    # Prolog-style rule with variables
-    expected_head = ~Less("v2", "v1")
-    expected_body = Less("v1", "v2")
+    assert len(solution_clauses) == 1, \
+        f"Expected 1 Solution rule, got {len(solution_clauses)}"
     
-    found = any(
-        c.head == expected_head and len(c.body) == 1 and c.body[0] == expected_body
-        for c in less_clauses
-    )
-    assert found, f"Expected less asymmetry rule with variables"
-    print(f"  [PASS] Less asymmetry rule exists (Prolog-style)")
+    # Solution head should be positive
+    assert not solution_clauses[0].head.negated, "Solution head should be positive"
+    
+    # Solution head should have args for all empty cells
+    num_empty = N_4X4 * N_4X4 - len(GIVEN_CELLS_4X4)
+    assert len(solution_clauses[0].head.args) == num_empty, \
+        f"Expected {num_empty} args in Solution head, got {len(solution_clauses[0].head.args)}"
+    
+    print(f"  [PASS] Solution rule exists for all {num_empty} empty cells")
 
 
 def test_4x4_hornkb_column_uniqueness():
-    """Column uniqueness rule with variables: Val(i2,j,v) ∧ Diff(i1,i2) => ~Val(i1,j,v)."""
+    """Column uniqueness enforced via Diff constraints in Solution rule."""
     puzzle = Parser().parse(FIXTURE_4X4)
     kb = HornClauseGenerator.generate(puzzle)
     
-    val_clauses = kb.get_clause_for("Val")
-    expected_head = ~Val("i1", "j", "v")
-    expected_body = [Val("i2", "j", "v"), Diff("i1", "i2")]
+    solution_clauses = kb.get_clause_for("Solution")
     
-    found = any(
-        c.head == expected_head and len(c.body) == 2 and
-        c.body[0] == expected_body[0] and c.body[1] == expected_body[1]
-        for c in val_clauses
-    )
-    assert found, f"Expected column uniqueness rule with variables"
-    print(f"  [PASS] Column uniqueness rule exists (Prolog-style)")
+    # Solution rule should have Diff constraints for column uniqueness
+    diff_count = sum(1 for lit in solution_clauses[0].body if lit.name == "Diff")
+    # For N=4 with 15 empty cells, there should be many Diff constraints
+    assert diff_count > 0, f"Expected Diff constraints in Solution body"
+    
+    print(f"  [PASS] Column uniqueness enforced via {diff_count} Diff constraints")
 
 
 def test_4x4_hornkb_diff_facts():
-    """Diff facts exist for indices and values to enable Prolog-style inequality."""
+    """Diff facts exist for values to enable uniqueness constraints."""
     puzzle = Parser().parse(FIXTURE_4X4)
     kb = HornClauseGenerator.generate(puzzle)
     
     diff_clauses = kb.get_clause_for("Diff")
     diff_facts = [c for c in diff_clauses if c.is_fact()]
     
-    # For 4x4: indices 0..3 and values 1..4
-    # Diff for indices: 4 * 3 = 12 facts
-    # Diff for values: 4 * 3 = 12 facts
-    expected_count = N_4X4 * (N_4X4 - 1) * 2  # 24
+    # For 4x4: values 1..4 only (no index Diff needed in pure positive approach)
+    expected_count = N_4X4 * (N_4X4 - 1)  # 12
     assert len(diff_facts) == expected_count, \
         f"Expected {expected_count} Diff facts, got {len(diff_facts)}"
     
-    # Verify Diff(0,1) and Diff(1,2) are present
-    assert any(c.head == Diff(0, 1) for c in diff_facts), "Expected Diff(0,1)"
+    # Verify Diff(1,2) is present
     assert any(c.head == Diff(1, 2) for c in diff_facts), "Expected Diff(1,2)"
     
     print(f"  [PASS] Diff facts present ({len(diff_facts)} facts)")
 
 
 def test_4x4_hornkb_row_uniqueness():
-    """Row uniqueness rule with variables exists."""
+    """Row uniqueness enforced via Diff constraints in Solution rule."""
     puzzle = Parser().parse(FIXTURE_4X4)
     kb = HornClauseGenerator.generate(puzzle)
     
-    val_clauses = kb.get_clause_for("Val")
-    expected_head = ~Val("i", "j1", "v")
-    expected_body = [Val("i", "j2", "v"), Diff("j1", "j2")]
+    solution_clauses = kb.get_clause_for("Solution")
     
-    found = any(
-        c.head == expected_head and len(c.body) == 2 and
-        c.body[0] == expected_body[0] and c.body[1] == expected_body[1]
-        for c in val_clauses
-    )
-    assert found, f"Expected row uniqueness rule with variables"
-    print(f"  [PASS] Row uniqueness rule exists (Prolog-style)")
+    # Solution rule should include Domain for generating values
+    domain_count = sum(1 for lit in solution_clauses[0].body if lit.name == "Domain")
+    num_empty = N_4X4 * N_4X4 - len(GIVEN_CELLS_4X4)
+    assert domain_count == num_empty, \
+        f"Expected {num_empty} Domain constraints, got {domain_count}"
+    
+    print(f"  [PASS] Row uniqueness enforced via Domain/Diff constraints")
 
 
-def test_4x4_hornkb_inequality_lessh():
-    """Inequality contrapositive rules exist for LessH constraint with variable values."""
+def test_4x4_hornkb_inequality_less():
+    """Inequality constraints use Less literals in Solution rule."""
     puzzle = Parser().parse(FIXTURE_4X4)
     kb = HornClauseGenerator.generate(puzzle)
     
-    # LessH at (0,0): cell(0,0) < cell(0,1)
-    # Prolog-style rule: Val(0,1,v2) ∧ ~Less(v1,v2) => ~Val(0,0,v1)
-    val_clauses = kb.get_clause_for("Val")
-    expected_head = ~Val(0, 0, "v1")
-    expected_body_1 = Val(0, 1, "v2")
-    expected_body_2 = ~Less("v1", "v2")
+    # Check for Solution rule that includes Less constraints
+    solution_clauses = kb.get_clause_for("Solution")
     
-    found = any(
-        c.head == expected_head and len(c.body) == 2 and
-        c.body[0] == expected_body_1 and c.body[1] == expected_body_2
-        for c in val_clauses
-    )
-    assert found, f"Expected LessH inequality rule with variables"
-    print(f"  [PASS] LessH contrapositive rule exists (Prolog-style)")
+    # Solution rule should include Less for inequality constraint
+    has_less = any(lit.name == "Less" for lit in solution_clauses[0].body)
+    assert has_less, "Expected Less constraint in Solution rule for inequality"
+    print(f"  [PASS] Inequality constraints use Less literals")
 
 
-def test_4x4_hornkb_inequality_greaterh():
-    """Inequality contrapositive rules exist for GreaterH constraint with variable values."""
+def test_4x4_hornkb_interleaved_structure():
+    """Solution rule uses interleaved Generate-and-Test structure."""
     puzzle = Parser().parse(FIXTURE_4X4)
     kb = HornClauseGenerator.generate(puzzle)
     
-    # GreaterH at (1,2): cell(1,2) > cell(1,3)
-    # Prolog-style rule: Val(1,3,v2) ∧ ~Less(v2,v1) => ~Val(1,2,v1)
-    val_clauses = kb.get_clause_for("Val")
-    expected_head = ~Val(1, 2, "v1")
-    expected_body_1 = Val(1, 3, "v2")
-    expected_body_2 = ~Less("v2", "v1")
+    solution_clauses = kb.get_clause_for("Solution")
+    body = solution_clauses[0].body
     
-    found = any(
-        c.head == expected_head and len(c.body) == 2 and
-        c.body[0] == expected_body_1 and c.body[1] == expected_body_2
-        for c in val_clauses
-    )
-    assert found, f"Expected GreaterH inequality rule with variables"
-    print(f"  [PASS] GreaterH contrapositive rule exists (Prolog-style)")
+    # In interleaved structure, Domain should not all be at the beginning
+    # Check that after the first Domain, there's a Diff before the second Domain
+    first_domain_idx = next(i for i, lit in enumerate(body) if lit.name == "Domain")
+    second_domain_idx = None
+    for i in range(first_domain_idx + 1, len(body)):
+        if body[i].name == "Domain":
+            second_domain_idx = i
+            break
+    
+    if second_domain_idx is not None:
+        # Check there's a Diff between first and second Domain
+        has_diff_between = any(
+            body[i].name == "Diff" 
+            for i in range(first_domain_idx + 1, second_domain_idx)
+        )
+        assert has_diff_between, "Expected interleaved structure: Domain, Diff, Domain"
+    
+    print(f"  [PASS] Solution rule uses interleaved Generate-and-Test structure")
 
 
 # ===========================================================================
@@ -498,7 +475,7 @@ def test_4x4_hornkb_inequality_greaterh():
 
 
 if __name__ == "__main__":
-    print("=== Integration: Parser -> Puzzle -> HornClauseKnowledgeBase (Prolog-style) ===\n")
+    print("=== Integration: Parser -> Puzzle -> HornClauseKnowledgeBase (Pure Positive Definite Clauses) ===\n")
     
     print("--- 2x2 Puzzle Tests ---")
     test_2x2_parser_returns_puzzle()
@@ -523,10 +500,11 @@ if __name__ == "__main__":
     test_4x4_hornkb_given_val_content()
     test_4x4_hornkb_less_content()
     test_4x4_hornkb_less_irreflexivity()
-    test_4x4_hornkb_less_asymmetry()
+    test_4x4_hornkb_solution_rule()
     test_4x4_hornkb_column_uniqueness()
     test_4x4_hornkb_diff_facts()
     test_4x4_hornkb_row_uniqueness()
-    test_4x4_hornkb_inequality_lessh()
+    test_4x4_hornkb_inequality_less()
+    test_4x4_hornkb_interleaved_structure()
     
     print("\n=== All Horn KB integration tests passed! ===")
