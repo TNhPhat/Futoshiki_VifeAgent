@@ -9,6 +9,8 @@ from .predicates import (
     GreaterV,
     Less,
     Diff,
+    Domain,
+    ValidVal,
 )
 from .axioms import Axioms
 from .kb import CNFClauseKnowledgeBase
@@ -26,7 +28,13 @@ __all__ = [
     "LessV",
     "GreaterV",
     "Less",
+    "Diff",
+    "Domain",
+    "ValidVal",
     "Axioms",
     "CNFClauseKnowledgeBase",
     "CNFGenerator",
+    "HornClauseKnowledgeBase",
+    "HornClause",
+    "HornClauseGenerator",
 ]

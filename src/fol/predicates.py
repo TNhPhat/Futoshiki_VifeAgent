@@ -231,3 +231,44 @@ def Diff(a, b) -> Literal:
         ``Literal("Diff", (a, b))``.
     """
     return Literal("Diff", (a, b))
+
+
+def Domain(v) -> Literal:
+    """
+    Create a ``Domain(v)`` literal — v is a valid domain value.
+
+    Parameters
+    ----------
+    v : int or str
+        A value in the domain (1..N integer or variable string).
+
+    Returns
+    -------
+    Literal
+        ``Literal("Domain", (v,))``.
+    """
+    return Literal("Domain", (v,))
+
+
+def ValidVal(i, j, v) -> Literal:
+    """
+    Create a ``ValidVal(i, j, v)`` literal — value v is valid for cell (i,j).
+
+    This is a positive predicate used in Definite Clauses to derive
+    that a value satisfies all constraints for a given cell.
+
+    Parameters
+    ----------
+    i : int or str
+        Row index (0-based integer or variable string).
+    j : int or str
+        Column index (0-based integer or variable string).
+    v : int or str
+        Cell value (1-based integer or variable string).
+
+    Returns
+    -------
+    Literal
+        ``Literal("ValidVal", (i, j, v))``.
+    """
+    return Literal("ValidVal", (i, j, v))

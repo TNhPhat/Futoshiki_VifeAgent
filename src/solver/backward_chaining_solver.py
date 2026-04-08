@@ -1,120 +1,121 @@
 """
-Backward Chaining Solver for Futoshiki using SLD Resolution.
+Pure Prolog-style SLD Resolution Solver for Futoshiki.
 
-Uses Prolog-style backward chaining to verify cell assignments:
-- Generate Horn clause KB with uniqueness/inequality rules
-- For each candidate value, use SLD resolution to check if forbidden
-- Backtrack when no valid value exists
+This solver uses the Generate-and-Test paradigm with SLD resolution:
+- A single Solution rule generates all possible assignments
+- Constraints are tested via Diff and Less facts
+- SLD backtracking explores the search space
+
+How it works:
+1. Generate KB with Domain, Diff, Less facts and a single Solution rule
+2. Create goal: Solution(v_0_1, v_1_0, ...) with variables for empty cells
+3. Call engine.prove_all(goals) - returns substitution {v_0_1: 2, v_1_0: 1, ...}
+4. Extract solution from substitution
+
+The Solution rule structure:
+    Solution(v_0_1, v_1_0, ...) :-
+        Domain(v_0_1), Domain(v_1_0), ...  # Generate
+        Diff(...), Diff(...), ...           # Test uniqueness
+        Less(...), ...                      # Test inequalities
 """
 
-from typing import List, Tuple
+from typing import Optional, List, Tuple
 import time
 import tracemalloc
 
 from core.puzzle import Puzzle
 from utils import Stats
 from .base_solver import BaseSolver
-from fol import HornClauseKnowledgeBase, HornClauseGenerator, Literal
-from fol.predicates import Val
+from fol import HornClauseGenerator, Literal
 from inference import BackwardChainingEngine
 
 
 class BackwardChaining(BaseSolver):
     """
-    Futoshiki solver using SLD resolution (Prolog-style backward chaining).
+    Futoshiki solver using Generate-and-Test with SLD resolution.
     
-    Algorithm:
-    1. Generate Horn clause KB with rules (cell/row/col uniqueness, inequality)
-    2. For each empty cell, try values 1..N
-    3. Use SLD resolution to prove ~Val(i,j,v) - if provable, value is forbidden
-    4. If not provable, value is allowed - make assignment and recurse
-    5. Backtrack if no valid value found
+    The solver:
+    1. Generates a KB with a single Solution rule
+    2. Proves the Solution goal
+    3. Extracts variable bindings as the solution
     """
     
     def __init__(self):
         self._t0: float = 0.0
         self._stats: Stats = None
-        self._inference_count: int = 0
 
     def solve(self, puzzle: Puzzle) -> tuple[Puzzle | None, Stats]:
-        """Solve puzzle using backward chaining with SLD resolution."""
+        """
+        Solve puzzle using Generate-and-Test SLD resolution.
+        """
         self._start_trace()
-        self._inference_count = 0
         
-        # Generate base KB with rules
-        base_kb = HornClauseGenerator.generate(puzzle)
+        # Generate KB with Generate-and-Test Solution rule
+        kb = HornClauseGenerator.generate(puzzle)
         
-        empty_cells = puzzle.get_empty_cells()
-        current_facts: List[Literal] = []
-        solution = puzzle.copy()
+        # Generate the Solution goal with variable names
+        goal = self._generate_goal(puzzle)
+        empty_cells = HornClauseGenerator.get_empty_cells(puzzle)
+        var_names = [f"v_{r}_{c}" for r, c in empty_cells]
         
-        self._solve_recursive(base_kb, empty_cells, 0, current_facts, puzzle.N, solution)
+        # Create engine
+        engine = BackwardChainingEngine(kb=kb)
+        
+        # Solve via SLD resolution
+        substitution = engine.prove_all([goal])
         
         self._end_trace()
-        self._stats.inference_count = self._inference_count
+        self._stats.inference_count = engine.inference_count
+        
+        if substitution is None:
+            return None, self._stats
+        
+        # Build solution from substitution
+        solution = puzzle.copy()
+        
+        for idx, (r, c) in enumerate(empty_cells):
+            var_name = var_names[idx]
+            value = self._resolve_value(var_name, substitution)
+            if value is not None and isinstance(value, int):
+                solution.grid[r, c] = value
+        
         return solution, self._stats
     
-    def _solve_recursive(self, 
-                         base_kb: HornClauseKnowledgeBase,
-                         empty_cells: List[Tuple[int, int]], 
-                         idx: int,
-                         current_facts: List[Literal],
-                         n: int,
-                         solution: Puzzle) -> bool:
-        """Recursively assign values using SLD resolution for validation."""
-        if idx >= len(empty_cells):
-            return True
-        
-        i, j = empty_cells[idx]
-        
-        for v in range(1, n + 1):
-            self._inference_count += 1
-            
-            if self._is_value_allowed(base_kb, current_facts, i, j, v):
-                # Value allowed - make assignment
-                current_facts.append(Val(i, j, v))
-                solution.grid[i, j] = v
-                
-                if self._solve_recursive(base_kb, empty_cells, idx + 1, 
-                                          current_facts, n, solution):
-                    return True
-                
-                # Backtrack
-                current_facts.pop()
-                solution.grid[i, j] = 0
-        
-        return False
-    
-    def _is_value_allowed(self, 
-                          base_kb: HornClauseKnowledgeBase,
-                          current_facts: List[Literal],
-                          i: int, j: int, v: int) -> bool:
+    def _generate_goal(self, puzzle: Puzzle) -> Literal:
         """
-        Check if Val(i,j,v) is allowed using SLD resolution.
+        Generate the Solution goal for SLD resolution.
         
-        Returns True if ~Val(i,j,v) cannot be proven (value allowed).
-        Returns False if ~Val(i,j,v) is provable (value forbidden).
+        Returns Solution(v_0_1, v_1_0, ...) with a unique variable
+        for each empty cell in row-major order.
         """
-        kb = self._build_kb_with_facts(base_kb, current_facts)
-        engine = BackwardChainingEngine(kb=kb, depth_limit=100)
-        
-        # Try to prove value is forbidden
-        result = engine.prove(~Val(i, j, v))
-        return result is None  # Allowed if we cannot prove it's forbidden
+        return HornClauseGenerator.get_solution_goal(puzzle)
     
-    def _build_kb_with_facts(self,
-                             base_kb: HornClauseKnowledgeBase,
-                             current_facts: List[Literal]) -> HornClauseKnowledgeBase:
-        """Build KB combining base rules with current assignment facts."""
-        kb = HornClauseKnowledgeBase()
+    def _resolve_value(self, var_name: str, substitution: dict) -> Optional[int]:
+        """
+        Resolve a variable name to its final value through the substitution chain.
         
-        for clause in base_kb._clause:
-            kb.add_clause(clause)
+        Follows the chain: var_name -> renamed_var -> ... -> final_value
+        """
+        value = var_name
+        visited = set()
         
-        for fact in current_facts:
-            kb.add_fact(fact)
+        while isinstance(value, str) and value not in visited:
+            visited.add(value)
+            if value in substitution:
+                value = substitution[value]
+            else:
+                # Variable not directly in substitution
+                # Check if any key is a renamed version of our variable
+                found = False
+                for key, val in substitution.items():
+                    if key == value or (isinstance(key, str) and key.startswith(value + "_")):
+                        value = val
+                        found = True
+                        break
+                if not found:
+                    break
         
-        return kb
+        return value if isinstance(value, int) else None
         
     def _start_trace(self):
         self._stats = Stats(0, 0, 0, 0, 0)
@@ -128,4 +129,4 @@ class BackwardChaining(BaseSolver):
         tracemalloc.stop()
         
     def get_name(self) -> str:
-        return "Backward Chaining (SLD Resolution)"
+        return "Backward Chaining (Generate-and-Test SLD)"
