@@ -20,6 +20,7 @@ from fol.unifier import Unifier, Substitution
 from fol.horn_kb import HornClause, HornClauseKnowledgeBase
 from fol.horn_generator import HornClauseGenerator
 from inference.backward_chaining import BackwardChainingEngine
+from solver.ac3_backward_chaining_solver import AC3BackwardChaining
 from solver.backward_chaining_solver import BackwardChaining
 from core.parser import Parser
 from core.puzzle import Puzzle
@@ -442,6 +443,26 @@ def test_solver_name():
     print(f"  [PASS] Solver name: {name}")
 
 
+def test_ac3_solver_solve_4x4():
+    """AC3BackwardChaining solves a valid 4x4 puzzle."""
+    puzzle = create_valid_4x4_puzzle()
+    solver = AC3BackwardChaining()
+
+    solution, _ = solver.solve(puzzle)
+    assert solution is not None
+    assert solution.is_complete(), "AC3 solution should be complete"
+
+    for i in range(4):
+        row = list(solution.grid[i])
+        assert sorted(row) == [1, 2, 3, 4], f"Row {i} invalid: {row}"
+
+
+def test_ac3_solver_name():
+    """AC3BackwardChaining returns a name that mentions AC3."""
+    name = AC3BackwardChaining().get_name()
+    assert "AC3" in name, f"Name should mention AC3: {name}"
+
+
 # ===========================================================================
 # Integration Tests
 # ===========================================================================
@@ -485,7 +506,7 @@ def test_integration_horn_generator():
     print(f"  [PASS] HornClauseGenerator produces valid KB ({kb.clause_count} clauses)")
 
 
-def test_integration_benchmark_against_expected():
+def _run_benchmark_against_expected():
     """Solve all benchmark inputs and match expected solution grids."""
     benchmark_root = Path(__file__).resolve().parents[1] / "src" / "benchmark"
     input_dir = benchmark_root / "input"
@@ -503,6 +524,7 @@ def test_integration_benchmark_against_expected():
         print("  [SKIP] no benchmark input files found")
         return
 
+    stats_rows = []
     for input_path in input_files:
         expected_path = expected_dir / input_path.name
         assert expected_path.exists(), f"Missing expected file: {expected_path}"
@@ -528,7 +550,12 @@ def test_integration_benchmark_against_expected():
             f"inferences={stats.inference_count}"
         )
         print(f"  [PASS] {input_path.name}")
-        yield input_path.name, stats
+        stats_rows.append((input_path.name, stats))
+    return stats_rows
+
+
+def test_integration_benchmark_against_expected():
+    _run_benchmark_against_expected()
 
 
 # ===========================================================================
@@ -570,12 +597,14 @@ if __name__ == "__main__":
     test_solver_validates_constraints()
     test_solver_stats_populated()
     test_solver_name()
+    test_ac3_solver_solve_4x4()
+    test_ac3_solver_name()
     
     print("\n--- Integration Tests ---")
     test_integration_parse_and_solve()
     test_integration_horn_generator()
     solver = BackwardChaining()
-    for test_name, stats in test_integration_benchmark_against_expected():
+    for test_name, stats in _run_benchmark_against_expected():
         StatsCsvWriter.write_stat(
             test_name=test_name,
             stats=stats,
