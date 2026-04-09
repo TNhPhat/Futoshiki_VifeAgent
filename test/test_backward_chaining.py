@@ -11,6 +11,7 @@ Uses valid 4x4 Futoshiki puzzles with known solutions.
 
 import os
 import sys
+from pathlib import Path
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
@@ -22,6 +23,7 @@ from inference.backward_chaining import BackwardChainingEngine
 from solver.backward_chaining_solver import BackwardChaining
 from core.parser import Parser
 from core.puzzle import Puzzle
+from utils.stats_csv import StatsCsvWriter
 import numpy as np
 
 
@@ -483,6 +485,52 @@ def test_integration_horn_generator():
     print(f"  [PASS] HornClauseGenerator produces valid KB ({kb.clause_count} clauses)")
 
 
+def test_integration_benchmark_against_expected():
+    """Solve all benchmark inputs and match expected solution grids."""
+    benchmark_root = Path(__file__).resolve().parents[1] / "src" / "benchmark"
+    input_dir = benchmark_root / "input"
+    expected_dir = benchmark_root / "expected"
+
+    if not input_dir.exists() or not expected_dir.exists():
+        print("  [SKIP] benchmark input/expected directories not found")
+        return
+
+    parser = Parser()
+    solver = BackwardChaining()
+    input_files = sorted(input_dir.glob("*.txt"))
+
+    if not input_files:
+        print("  [SKIP] no benchmark input files found")
+        return
+
+    for input_path in input_files:
+        expected_path = expected_dir / input_path.name
+        assert expected_path.exists(), f"Missing expected file: {expected_path}"
+
+        puzzle = parser.parse(str(input_path))
+        expected = parser.parse(str(expected_path))
+        solution, stats = solver.solve(puzzle)
+
+        assert solution is not None, f"No solution returned for {input_path.name}"
+        assert solution.is_complete(), f"Incomplete solution for {input_path.name}"
+        assert np.array_equal(solution.grid, expected.grid), (
+            f"Grid mismatch for {input_path.name}\n"
+            f"Expected:\n{expected.grid}\n"
+            f"Got:\n{solution.grid}"
+        )
+
+        print(f"\n[Benchmark] {input_path.name}")
+        print(solution)
+        print(
+            "  Stats: "
+            f"time={stats.time_ms:.2f}ms, "
+            f"memory={stats.memory_kb:.2f}KB, "
+            f"inferences={stats.inference_count}"
+        )
+        print(f"  [PASS] {input_path.name}")
+        yield input_path.name, stats
+
+
 # ===========================================================================
 # Runner
 # ===========================================================================
@@ -526,5 +574,11 @@ if __name__ == "__main__":
     print("\n--- Integration Tests ---")
     test_integration_parse_and_solve()
     test_integration_horn_generator()
-    
+    solver = BackwardChaining()
+    for test_name, stats in test_integration_benchmark_against_expected():
+        StatsCsvWriter.write_stat(
+            test_name=test_name,
+            stats=stats,
+            solver_name=solver.get_name(),
+        )
     print("\n=== All backward chaining tests passed! ===")

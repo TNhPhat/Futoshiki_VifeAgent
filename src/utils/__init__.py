@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from .stats_csv import StatsCsvWriter
+
 
 @dataclass
 class Stats:
@@ -27,3 +29,6 @@ class Stats:
     inference_count: int
     node_expansions: int
     backtracks: int
+
+
+__all__ = ["Stats", "StatsCsvWriter"]
