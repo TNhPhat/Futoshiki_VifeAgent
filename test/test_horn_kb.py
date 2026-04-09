@@ -25,7 +25,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 from core.parser import Parser
 from fol.horn_generator import HornClauseGenerator
 from fol.horn_kb import HornClauseKnowledgeBase, HornClause
-from fol.predicates import Val, Less, Diff, Domain, ValidVal
+from fol.predicates import Val, Less, Diff, Domain
 
 
 # ---------------------------------------------------------------------------
