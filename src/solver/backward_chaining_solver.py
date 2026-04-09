@@ -127,6 +127,6 @@ class BackwardChaining(BaseSolver):
         _, self._stats.memory_kb = tracemalloc.get_traced_memory()
         self._stats.memory_kb /= 1024
         tracemalloc.stop()
-        
+    
     def get_name(self) -> str:
         return "Backward Chaining (Generate-and-Test SLD)"

@@ -103,7 +103,6 @@ class HornClauseGenerator:
         return facts
 
     # ==================== Solution Rule ====================
-
     @staticmethod
     def _get_solution_rule(puzzle: Puzzle) -> HornClause:
         """
@@ -128,17 +127,14 @@ class HornClauseGenerator:
         n = puzzle.N
         
         # Collect empty cells and create variable names
-        empty_cells: List[Tuple[int, int]] = []
+        empty_cells: List[Tuple[int, int]] = puzzle.get_empty_cells()
         var_names: List[str] = []
         cell_to_var: Dict[Tuple[int, int], str] = {}
         
-        for r in range(n):
-            for c in range(n):
-                if puzzle.grid[r, c] == 0:
-                    var_name = f"v_{r}_{c}"
-                    empty_cells.append((r, c))
-                    var_names.append(var_name)
-                    cell_to_var[(r, c)] = var_name
+        for r,c in empty_cells:
+            var_name = f"v_{r}_{c}"
+            var_names.append(var_name)
+            cell_to_var[(r, c)] = var_name
         
         if not empty_cells:
             return None  # No empty cells, puzzle already solved
@@ -232,12 +228,30 @@ class HornClauseGenerator:
         return empty
     
     @staticmethod
+    def get_cell_score(puzzle: Puzzle,r: int, c:int ) -> int:
+            score = 0
+            # 1. Cộng điểm nếu cùng hàng/cột có nhiều ô đã điền sẵn (Given)
+            for i in range(puzzle.N):
+                if puzzle.grid[r, i] != 0: score += 1
+                if puzzle.grid[i, c] != 0: score += 1
+            
+            # 2. Cộng điểm NẶNG nếu ô này dính líu tới dấu < hoặc >
+            for constraint in puzzle.h_constraints + puzzle.v_constraints:
+                if (r, c) == constraint.cell1 or (r, c) == constraint.cell2:
+                    score += 2  # Dấu bất đẳng thức giúp cắt nhánh cực mạnh
+            
+            return score
+    @staticmethod
     def get_solution_goal(puzzle: Puzzle) -> Literal:
         """
         Get the Solution goal to prove.
         
         Returns Solution(v_0_1, v_1_0, ...) with unique variable for each empty cell.
         """
+        empty_cell = puzzle.get_empty_cells()
+        empty_cell.sort(
+            key = lambda cell: HornClauseGenerator.get_cell_score(puzzle,cell[0],cell[1]), reverse = True
+        )
         var_names = []
         for r in range(puzzle.N):
             for c in range(puzzle.N):
