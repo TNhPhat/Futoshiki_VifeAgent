@@ -45,6 +45,14 @@ def _iter_input_files(input_dir: Path) -> Iterable[Path]:
             yield file_path
 
 
+def _progress_bar(done: int, total: int, width: int = 24) -> str:
+    if total <= 0:
+        return "[no cases]"
+    ratio = done / total
+    filled = int(ratio * width)
+    return "[" + ("#" * filled) + ("-" * (width - filled)) + "]"
+
+
 def _evaluate_case(
     parser: Parser,
     solver_name: str,
@@ -139,7 +147,17 @@ def run_benchmark(solver_key: str, benchmark_root: Path) -> tuple[list[tuple[str
     rows: list[tuple[str, BenchmarkRow]] = []
     failed = 0
 
-    for input_path in _iter_input_files(input_dir):
+    input_files = list(_iter_input_files(input_dir))
+    if not input_files:
+        raise FileNotFoundError(f"no benchmark input files found in: {input_dir}")
+
+    total = len(input_files)
+    print(
+        f"Running benchmark: solver={solver_name} ({solver_key}), "
+        f"cases={total}, root={benchmark_root}"
+    )
+
+    for idx, input_path in enumerate(input_files, start=1):
         row = _evaluate_case(
             parser=parser,
             solver_name=solver_name,
@@ -151,8 +169,16 @@ def run_benchmark(solver_key: str, benchmark_root: Path) -> tuple[list[tuple[str
             failed += 1
         rows.append((input_path.name, row))
 
-    if not rows:
-        raise FileNotFoundError(f"no benchmark input files found in: {input_dir}")
+        status = "OK" if row.ok else "FAIL"
+        print(
+            f"{_progress_bar(idx, total)} "
+            f"{idx}/{total} {input_path.name} -> {status} "
+            f"({row.time_ms:.2f}ms, {row.memory_kb:.1f}KB)"
+        )
+
+    print(
+        f"Benchmark complete: passed={total - failed}, failed={failed}, total={total}"
+    )
 
     return rows, failed
 
@@ -179,7 +205,8 @@ def main(argv: list[str] | None = None) -> int:
         benchmark_root=args.benchmark_root,
     )
     solver_name = rows[0][1].solver_name
-    StatsCsvWriter.write_many(rows, solver_name=solver_name)
+    csv_path = StatsCsvWriter.write_many(rows, solver_name=solver_name)
+    print(f"Stats written to: {csv_path}")
 
     return 0 if failed == 0 else 1
 
