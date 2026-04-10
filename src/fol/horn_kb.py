@@ -1,5 +1,5 @@
 from typing import List, Optional, Dict, Generator
-from fol import Literal
+from .predicates import Literal
 from dataclasses import dataclass
 
 @dataclass

@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from core import Puzzle
-from utils import Stats
+from futoshiki_vifeagent.core import Puzzle
+from futoshiki_vifeagent.utils import Stats
 
 
 class BaseSolver(ABC):

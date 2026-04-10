@@ -10,6 +10,14 @@ dependencies = [
     "z3-solver>=4.12.4.0",
 ]
 
+[project.scripts]
+futoshiki = "futoshiki_vifeagent.__main__:main"
+futoshiki-solver = "futoshiki_vifeagent.solver.__main__:main"
+futoshiki-ui = "futoshiki_vifeagent.ui.__main__:main"
+
+[tool.uv]
+package = true
+
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["test"]

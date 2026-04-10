@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from collections import deque
 
-from core.puzzle import Puzzle
-from fol import HornClauseGenerator
-from inference import BackwardChainingEngine
-from utils import Stats
+from futoshiki_vifeagent.core import Puzzle
+from futoshiki_vifeagent.fol import HornClauseGenerator
+from futoshiki_vifeagent.inference import BackwardChainingEngine
+from futoshiki_vifeagent.utils import Stats
 
 from .backward_chaining_solver import BackwardChaining
 

@@ -6,10 +6,10 @@ from typing import Optional
 import time
 import tracemalloc
 
-from core.puzzle import Puzzle
-from fol import HornClauseGenerator, Literal
-from inference import BackwardChainingEngine
-from utils import Stats
+from futoshiki_vifeagent.core import Puzzle
+from futoshiki_vifeagent.fol import HornClauseGenerator, Literal
+from futoshiki_vifeagent.inference import BackwardChainingEngine
+from futoshiki_vifeagent.utils import Stats
 
 from .base_solver import BaseSolver
 
