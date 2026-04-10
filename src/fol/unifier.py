@@ -1,4 +1,4 @@
-from fol.predicates import Literal
+from .predicates import Literal
 from typing import Dict, Optional, List, Any
 
 

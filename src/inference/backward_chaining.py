@@ -9,8 +9,13 @@ Implements standard SLD resolution with:
 """
 
 from typing import List, Optional, Generator
-from fol import Unifier, HornClauseKnowledgeBase, Literal, Substitution
-from fol.horn_kb import HornClause
+from futoshiki_vifeagent.fol import (
+    HornClauseKnowledgeBase,
+    HornClause,
+    Literal,
+    Substitution,
+    Unifier,
+)
 
 
 class BackwardChainingEngine:

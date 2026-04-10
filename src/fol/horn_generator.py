@@ -12,7 +12,7 @@ Optional AC3-pruned mode:
 
 from typing import Dict, List, Tuple
 
-from core import Puzzle
+from futoshiki_vifeagent.core import Puzzle
 
 from .horn_kb import HornClause, HornClauseKnowledgeBase
 from .predicates import Diff, Domain, Less, Literal, Val

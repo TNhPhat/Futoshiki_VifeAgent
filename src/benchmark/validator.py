@@ -13,8 +13,7 @@ PROJECT_SRC = Path(__file__).resolve().parents[1]
 if str(PROJECT_SRC) not in sys.path:
     sys.path.insert(0, str(PROJECT_SRC))
 
-from core.parser import ParseError, Parser
-from core.puzzle import Puzzle
+from futoshiki_vifeagent.core import ParseError, Parser, Puzzle
 
 
 @dataclass(slots=True)

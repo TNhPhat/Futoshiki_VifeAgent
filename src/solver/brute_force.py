@@ -4,9 +4,9 @@ import time
 import tracemalloc
 from itertools import product
 
-from core.puzzle import Puzzle
-from solver.base_solver import BaseSolver
-from utils import Stats
+from futoshiki_vifeagent.core import Puzzle
+from futoshiki_vifeagent.utils import Stats
+from .base_solver import BaseSolver
 
 
 class BruteForceSolver(BaseSolver):

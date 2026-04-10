@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from constraints.inequality_constraint import InequalityConstraint
+from futoshiki_vifeagent.constraints import InequalityConstraint
 
 
 @dataclass
