@@ -1,1 +1,2 @@
 from .backward_chaining import BackwardChainingEngine
+from .forward_chaining import ForwardChainingEngine
