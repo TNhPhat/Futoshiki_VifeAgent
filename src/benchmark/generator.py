@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import random
+import time
 from pathlib import Path
 
 from z3 import Distinct, Int, Or, Solver, sat
@@ -216,6 +217,13 @@ class FutoshikiGenerator:
             
         return "\n".join(lines)
 
+
+def _progress_bar(done: int, total: int, width: int = 24) -> str:
+    if total <= 0:
+        return "[no specs]"
+    filled = int((done / total) * width)
+    return "[" + ("#" * filled) + ("-" * (width - filled)) + "]"
+
 def _serialize_benchmark(n, grid, h_rows, v_rows):
     lines = [str(n)]
     lines.extend(",".join(map(str, row)) for row in grid)
@@ -238,7 +246,7 @@ def _constraint_rows_from_puzzle(puzzle):
     return h_rows, v_rows
 
 
-def generate_benchmark_corpus(output_root: Path) -> list[Path]:
+def generate_benchmark_corpus(output_root: Path, *, verbose: bool = True) -> list[Path]:
     input_dir = output_root / "input"
     expected_dir = output_root / "expected"
     input_dir.mkdir(parents=True, exist_ok=True)
@@ -247,8 +255,15 @@ def generate_benchmark_corpus(output_root: Path) -> list[Path]:
     # from futoshiki_vifeagent.benchmark import validator
 
     written_files: list[Path] = []
+    started_at = time.perf_counter()
 
-    for spec in BENCHMARK_SPECS:
+    if verbose:
+        print(
+            f"Generating {len(BENCHMARK_SPECS)} benchmark pair(s) under {output_root}"
+        )
+
+    for index, spec in enumerate(BENCHMARK_SPECS, start=1):
+        spec_started_at = time.perf_counter()
         generator = FutoshikiGenerator(spec["size"], seed=spec["seed"])
         generator.generate_full_grid()
         generator.add_constraints(density=spec["density"])
@@ -274,6 +289,24 @@ def generate_benchmark_corpus(output_root: Path) -> list[Path]:
         #     raise RuntimeError(f"{input_file}: {validation.message}")
 
         written_files.extend([input_file, expected_file])
+
+        if verbose:
+            filled_cells = generator._filled_cells()
+            total_cells = generator.n * generator.n
+            elapsed_ms = (time.perf_counter() - spec_started_at) * 1000
+            print(
+                f"{_progress_bar(index, len(BENCHMARK_SPECS))} "
+                f"{index}/{len(BENCHMARK_SPECS)} {spec['filename']} -> OK "
+                f"(size={generator.n}x{generator.n}, "
+                f"givens={filled_cells}/{total_cells}, "
+                f"density={spec['density']:.2f}, "
+                f"target_fill={spec['fill_ratio']:.2f}, "
+                f"{elapsed_ms:.2f}ms)"
+            )
+
+    if verbose:
+        total_elapsed_ms = (time.perf_counter() - started_at) * 1000
+        print(f"Generation runtime: {total_elapsed_ms:.2f}ms")
 
     return written_files
 
