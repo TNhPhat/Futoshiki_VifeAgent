@@ -21,6 +21,7 @@ class BackwardChaining(BaseSolver):
 
     def solve(self, puzzle: Puzzle) -> tuple[Puzzle | None, Stats]:
         self._start_trace()
+        initially_unsolved = int((puzzle.grid == 0).sum())
 
         kb = HornClauseGenerator.generate(puzzle)
         goal = self._generate_goal(puzzle)
@@ -34,6 +35,10 @@ class BackwardChaining(BaseSolver):
         self._stats.inference_count = engine.inference_count
 
         if substitution is None:
+            self._stats.completion_ratio = self._completion_ratio(
+                initially_unsolved=initially_unsolved,
+                solution=None,
+            )
             return None, self._stats
 
         solution = puzzle.copy()
@@ -43,6 +48,10 @@ class BackwardChaining(BaseSolver):
             if value is not None and isinstance(value, int):
                 solution.grid[r, c] = value
 
+        self._stats.completion_ratio = self._completion_ratio(
+            initially_unsolved=initially_unsolved,
+            solution=solution,
+        )
         return solution, self._stats
 
     def _generate_goal(self, puzzle: Puzzle) -> Literal:
@@ -81,3 +90,16 @@ class BackwardChaining(BaseSolver):
 
     def get_name(self) -> str:
         return "Backward Chaining (Generate-and-Test SLD)"
+
+    @staticmethod
+    def _completion_ratio(initially_unsolved: int, solution: Puzzle | None) -> float:
+        if initially_unsolved == 0:
+            return 1.0
+        if solution is None:
+            return 0.0
+        solved_after = int((solution.grid != 0).sum()) - (
+            solution.N * solution.N - initially_unsolved
+        )
+        if solved_after < 0:
+            return 0.0
+        return solved_after / initially_unsolved

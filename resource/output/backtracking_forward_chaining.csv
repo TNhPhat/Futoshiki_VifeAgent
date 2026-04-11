@@ -1,0 +1,25 @@
+test_name,solver_name,puzzle_size,input_file,ok,message,time_ms,memory_kb,inference_count,node_expansions,backtracks,completion_ratio
+puzzle_01_4x4_easy.txt,Backtracking + Forward Chaining,4,puzzle_01_4x4_easy.txt,True,matches expected solution,42.205499950796366,89.5,1243,0,0,1.0
+puzzle_02_4x4_medium.txt,Backtracking + Forward Chaining,4,puzzle_02_4x4_medium.txt,True,matches expected solution,40.144599974155426,97.40625,1163,0,0,1.0
+puzzle_03_4x4_medium.txt,Backtracking + Forward Chaining,4,puzzle_03_4x4_medium.txt,True,matches expected solution,49.06860017217696,88.4140625,1460,0,0,1.0
+puzzle_04_4x4_hard.txt,Backtracking + Forward Chaining,4,puzzle_04_4x4_hard.txt,True,matches expected solution,29.58169998601079,69.6640625,943,0,0,1.0
+puzzle_05_5x5_easy.txt,Backtracking + Forward Chaining,5,puzzle_05_5x5_easy.txt,True,matches expected solution,118.69099992327392,149.1875,2975,0,0,1.0
+puzzle_06_5x5_medium.txt,Backtracking + Forward Chaining,5,puzzle_06_5x5_medium.txt,True,matches expected solution,77.41500018164515,132.7265625,2033,0,0,1.0
+puzzle_07_5x5_medium.txt,Backtracking + Forward Chaining,5,puzzle_07_5x5_medium.txt,True,matches expected solution,109.53609994612634,150.6328125,2789,0,0,1.0
+puzzle_08_5x5_hard.txt,Backtracking + Forward Chaining,5,puzzle_08_5x5_hard.txt,True,matches expected solution,108.54430007748306,125.546875,2947,0,0,1.0
+puzzle_09_6x6_easy.txt,Backtracking + Forward Chaining,6,puzzle_09_6x6_easy.txt,True,matches expected solution,181.7779999691993,282.5703125,3685,0,0,1.0
+puzzle_10_6x6_medium.txt,Backtracking + Forward Chaining,6,puzzle_10_6x6_medium.txt,True,matches expected solution,208.8535998482257,260.4765625,4390,0,0,1.0
+puzzle_11_6x6_medium.txt,Backtracking + Forward Chaining,6,puzzle_11_6x6_medium.txt,True,matches expected solution,268.87440006248653,269.421875,5321,0,0,1.0
+puzzle_12_6x6_hard.txt,Backtracking + Forward Chaining,6,puzzle_12_6x6_hard.txt,True,matches expected solution,1102.02130000107,530.1640625,24124,8,4,1.0
+puzzle_13_7x7_easy.txt,Backtracking + Forward Chaining,7,puzzle_13_7x7_easy.txt,True,matches expected solution,592.4857000354677,350.6328125,10762,0,0,1.0
+puzzle_14_7x7_medium.txt,Backtracking + Forward Chaining,7,puzzle_14_7x7_medium.txt,True,matches expected solution,797.7344000246376,327.0234375,15321,0,0,1.0
+puzzle_15_7x7_medium.txt,Backtracking + Forward Chaining,7,puzzle_15_7x7_medium.txt,True,matches expected solution,11964.986299863085,1023.046875,213348,32,26,1.0
+puzzle_16_7x7_hard.txt,Backtracking + Forward Chaining,7,puzzle_16_7x7_hard.txt,True,matches expected solution,4403.299400117248,1583.6875,85658,20,7,1.0
+puzzle_17_8x8_easy.txt,Backtracking + Forward Chaining,8,puzzle_17_8x8_easy.txt,True,matches expected solution,668.3839000761509,473.8046875,10449,0,0,1.0
+puzzle_18_8x8_medium.txt,Backtracking + Forward Chaining,8,puzzle_18_8x8_medium.txt,True,matches expected solution,11769.550800090656,1360.5234375,175997,15,13,1.0
+puzzle_19_8x8_medium.txt,Backtracking + Forward Chaining,8,puzzle_19_8x8_medium.txt,True,matches expected solution,17332.20129995607,2452.1015625,256064,27,16,1.0
+puzzle_20_8x8_hard.txt,Backtracking + Forward Chaining,8,puzzle_20_8x8_hard.txt,True,matches expected solution,85526.76820009947,2419.0703125,1381079,143,136,1.0
+puzzle_21_9x9_easy.txt,Backtracking + Forward Chaining,9,puzzle_21_9x9_easy.txt,True,matches expected solution,1493.2236999738961,612.9140625,19397,0,0,1.0
+puzzle_22_9x9_medium.txt,Backtracking + Forward Chaining,9,puzzle_22_9x9_medium.txt,True,matches expected solution,57108.27379999682,3566.84375,743695,51,41,1.0
+puzzle_23_9x9_medium.txt,Backtracking + Forward Chaining,9,puzzle_23_9x9_medium.txt,True,matches expected solution,8811.421000165865,2307.328125,122821,10,2,1.0
+puzzle_24_9x9_hard.txt,Backtracking + Forward Chaining,9,puzzle_24_9x9_hard.txt,True,matches expected solution,452979.9659999553,4734.265625,5215713,357,344,1.0

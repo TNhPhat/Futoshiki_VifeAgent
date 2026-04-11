@@ -41,6 +41,9 @@ class HornClauseKnowledgeBase:
     def get_clause_for(self,predicate_name: str) -> List[HornClause]:
         return self._index.get(predicate_name, [])
 
+    def get_clauses(self) -> List[HornClause]:
+        return list(self._clause)
+
     @property
     def clause_count(self) -> int:
         return len(self._clause)

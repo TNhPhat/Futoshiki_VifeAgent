@@ -14,7 +14,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument(
         "--solver",
         default="backward_chaining",
-        help="Solver key: backward_chaining, ac3_backward_chaining, brute_force",
+        help=(
+            "Solver key: forward_chaining, forward_then_ac3_backward_chaining, "
+            "backtracking_forward_chaining, "
+            "backward_chaining, ac3_backward_chaining, brute_force"
+        ),
     )
     parser.add_argument(
         "--benchmark-root",
