@@ -22,6 +22,9 @@ class Stats:
         Nodes/assignments expanded (A*, Brute Force); 0 for chain-based solvers.
     backtracks : int
         Number of backtracks (Backtracking solver); 0 for other solvers.
+    completion_ratio : float
+        Ratio of cells solved by the algorithm:
+        (# initially-empty cells solved) / (# initially-empty cells).
     """
 
     time_ms: float
@@ -29,6 +32,7 @@ class Stats:
     inference_count: int
     node_expansions: int
     backtracks: int
+    completion_ratio: float = 0.0
 
 
 __all__ = ["Stats", "StatsCsvWriter"]

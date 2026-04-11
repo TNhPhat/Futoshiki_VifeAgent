@@ -20,6 +20,7 @@ def test_write_one_stats_to_csv(tmp_path, monkeypatch):
         inference_count=20,
         node_expansions=3,
         backtracks=1,
+        completion_ratio=0.5,
     )
 
     StatsCsvWriter.write_stat("test_case_1", stats, solver_name="Backward Chaining")
@@ -34,6 +35,7 @@ def test_write_one_stats_to_csv(tmp_path, monkeypatch):
     assert rows[0]["inference_count"] == "20"
     assert rows[0]["node_expansions"] == "3"
     assert rows[0]["backtracks"] == "1"
+    assert rows[0]["completion_ratio"] == "0.5"
 
 
 def test_write_many_supports_future_added_metrics(tmp_path, monkeypatch):

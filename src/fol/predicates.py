@@ -88,6 +88,27 @@ def Val(i, j, v) -> Literal:
     return Literal("Val", (i, j, v))
 
 
+def NotVal(i, j, v) -> Literal:
+    """
+    Create a ``NotVal(i, j, v)`` literal — cell (i,j) cannot hold value v.
+
+    Parameters
+    ----------
+    i : int or str
+        Row index (0-based integer or variable string).
+    j : int or str
+        Column index (0-based integer or variable string).
+    v : int or str
+        Cell value (1-based integer or variable string).
+
+    Returns
+    -------
+    Literal
+        ``Literal("NotVal", (i, j, v))``.
+    """
+    return Literal("NotVal", (i, j, v))
+
+
 def Given(i: int, j: int, v: int) -> Literal:
     """
     Create a ``Given(i, j, v)`` literal — cell (i,j) is a clue.
@@ -210,6 +231,16 @@ def Less(v1, v2) -> Literal:
         ``Literal("Less", (v1, v2))``.
     """
     return Literal("Less", (v1, v2))
+
+
+def Geq(v1, v2) -> Literal:
+    """
+    Create a ``Geq(v1, v2)`` literal for inequality-grounding facts.
+
+    In this project, ``Geq(a, b)`` is interpreted as ``b >= a`` so rules can
+    directly follow the axiom form in ``docs/futoshiki.md``.
+    """
+    return Literal("Geq", (v1, v2))
 
 
 def Diff(a, b) -> Literal:

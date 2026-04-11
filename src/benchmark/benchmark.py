@@ -11,7 +11,10 @@ from futoshiki_vifeagent.core import Parser
 from futoshiki_vifeagent.solver import (
     AC3BackwardChaining,
     BackwardChaining,
+    BacktrackingForwardChaining,
     BruteForceSolver,
+    ForwardChaining,
+    ForwardThenAC3BackwardChaining,
 )
 from futoshiki_vifeagent.solver import BaseSolver
 from futoshiki_vifeagent.utils import StatsCsvWriter
@@ -29,10 +32,14 @@ class BenchmarkRow:
     inference_count: int
     node_expansions: int
     backtracks: int
+    completion_ratio: float
 
 
 def _solver_registry() -> Dict[str, type[BaseSolver]]:
     return {
+        "forward_chaining": ForwardChaining,
+        "forward_then_ac3_backward_chaining": ForwardThenAC3BackwardChaining,
+        "backtracking_forward_chaining": BacktrackingForwardChaining,
         "backward_chaining": BackwardChaining,
         "ac3_backward_chaining": AC3BackwardChaining,
         "brute_force": BruteForceSolver,
@@ -76,6 +83,7 @@ def _evaluate_case(
             inference_count=stats.inference_count,
             node_expansions=stats.node_expansions,
             backtracks=stats.backtracks,
+            completion_ratio=stats.completion_ratio,
         )
 
     if solution is None:
@@ -90,6 +98,7 @@ def _evaluate_case(
             inference_count=stats.inference_count,
             node_expansions=stats.node_expansions,
             backtracks=stats.backtracks,
+            completion_ratio=stats.completion_ratio,
         )
 
     if not solution.is_complete():
@@ -104,6 +113,7 @@ def _evaluate_case(
             inference_count=stats.inference_count,
             node_expansions=stats.node_expansions,
             backtracks=stats.backtracks,
+            completion_ratio=stats.completion_ratio,
         )
 
     expected = parser.parse(str(expected_path))
@@ -125,6 +135,7 @@ def _evaluate_case(
         inference_count=stats.inference_count,
         node_expansions=stats.node_expansions,
         backtracks=stats.backtracks,
+        completion_ratio=stats.completion_ratio,
     )
 
 
@@ -190,7 +201,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--solver",
         required=True,
-        help="Solver key: backward_chaining, ac3_backward_chaining, brute_force",
+        help=(
+            "Solver key: forward_chaining, forward_then_ac3_backward_chaining, "
+            "backtracking_forward_chaining, "
+            "backward_chaining, ac3_backward_chaining, brute_force, all"
+        ),
     )
     parser.add_argument(
         "--benchmark-root",
@@ -199,16 +214,25 @@ def main(argv: list[str] | None = None) -> int:
         help="Benchmark directory containing input/ and expected/.",
     )
     args = parser.parse_args(argv)
-
-    rows, failed = run_benchmark(
-        solver_key=args.solver,
-        benchmark_root=args.benchmark_root,
-    )
-    solver_name = rows[0][1].solver_name
-    csv_path = StatsCsvWriter.write_many(rows, solver_name=solver_name)
-    print(f"Stats written to: {csv_path}")
-
-    return 0 if failed == 0 else 1
+    if (args.solver == "all"):
+        for solver in _solver_registry():
+            rows, failed = run_benchmark(
+                solver_key=solver,
+                benchmark_root=args.benchmark_root,
+            )
+            solver_name = rows[0][1].solver_name
+            csv_path = StatsCsvWriter.write_many(rows, solver_name=solver_name)
+            print(f"Stats written to: {csv_path}")
+    else:
+        rows, failed = run_benchmark(
+            solver_key=args.solver,
+            benchmark_root=args.benchmark_root,
+        )
+        solver_name = rows[0][1].solver_name
+        csv_path = StatsCsvWriter.write_many(rows, solver_name=solver_name)
+        print(f"Stats written to: {csv_path}")
+        return 0 if failed == 0 else 1
+    return 1
 
 
 if __name__ == "__main__":

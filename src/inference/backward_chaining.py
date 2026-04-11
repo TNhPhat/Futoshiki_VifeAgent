@@ -28,12 +28,13 @@ class BackwardChainingEngine:
     - Backtracking via Python generators explores all choices
     """
     
-    def __init__(self, kb: HornClauseKnowledgeBase, depth_limit: int = 500) -> None:
+    def __init__(self, kb: HornClauseKnowledgeBase, depth_limit: int = 500, limit_depth: bool = False) -> None:
         self._kb = kb
         self._unifier = Unifier()
         self._depth_limit = depth_limit
         self._clause_counter = 0
         self._inference_count = 0
+        self._limit_depth = limit_depth
     
     @property
     def inference_count(self) -> int:
@@ -83,7 +84,7 @@ class BackwardChainingEngine:
         self._inference_count += 1
         
         # Check depth limit
-        if self._inference_count > self._depth_limit * 1000:
+        if self._limit_depth and self._inference_count > self._depth_limit * 1000:
             return
         
         # Success: empty goal list

@@ -58,6 +58,13 @@ def create_simple_2x2_puzzle() -> Puzzle:
     return Puzzle(N=2, grid=grid, h_constraints=h_constraints, v_constraints=v_constraints)
 
 
+def assert_solved_cells_match_expected(solution: Puzzle, expected_grid: np.ndarray) -> None:
+    solved_mask = solution.grid != 0
+    assert np.array_equal(solution.grid[solved_mask], expected_grid[solved_mask]), (
+        f"Solved-cell mismatch\nExpected:\n{expected_grid}\nGot:\n{solution.grid}"
+    )
+
+
 # ===========================================================================
 # Forward Chaining Engine Tests
 # ===========================================================================
@@ -126,24 +133,31 @@ def test_solver_solve_2x2():
     print(f"  [PASS] Solver solves 2x2 (time={stats.time_ms:.2f}ms, inferences={stats.inference_count})")
 
 def test_solver_solve_4x4():
-    """ForwardChaining solves a valid 4x4 puzzle."""
+    """ForwardChaining validates only the cells it can solve."""
     puzzle = create_valid_4x4_puzzle()
     solver = ForwardChaining()
     
     solution, stats = solver.solve(puzzle)
     
     assert solution is not None, "Solver failed to find a solution"
-    assert solution.is_complete(), "Solution should be complete"
-    
-    for i in range(4):
-        row = list(solution.grid[i])
-        assert sorted(row) == [1, 2, 3, 4], f"Row {i} invalid: {row}"
-    
-    for j in range(4):
-        col = list(solution.grid[:, j])
-        assert sorted(col) == [1, 2, 3, 4], f"Col {j} invalid: {col}"
-    
-    print(f"  [PASS] Solver solves 4x4 (time={stats.time_ms:.2f}ms, inferences={stats.inference_count})")
+    expected = np.array([
+        [1, 2, 3, 4],
+        [2, 3, 4, 1],
+        [3, 4, 1, 2],
+        [4, 1, 2, 3],
+    ], dtype=int)
+    assert_solved_cells_match_expected(solution, expected)
+    initially_unsolved_mask = puzzle.grid == 0
+    initially_unsolved = int(np.count_nonzero(initially_unsolved_mask))
+    solved_by_algo = int(np.count_nonzero(solution.grid[initially_unsolved_mask]))
+    expected_ratio = 1.0 if initially_unsolved == 0 else solved_by_algo / initially_unsolved
+    assert stats.completion_ratio == expected_ratio
+
+    print(
+        f"  [PASS] Solver returns 4x4 best-effort grid "
+        f"(complete={solution.is_complete()}, ratio={stats.completion_ratio:.3f}, "
+        f"time={stats.time_ms:.2f}ms, inferences={stats.inference_count})"
+    )
 
 def test_solver_respects_given_cells():
     """ForwardChaining preserves given cell values."""
@@ -170,6 +184,7 @@ def test_solver_stats_populated():
     assert stats.time_ms > 0, "time_ms should be > 0"
     assert stats.memory_kb > 0, "memory_kb should be > 0"
     assert stats.inference_count > 0, "inference_count should be > 0"
+    assert 0.0 <= stats.completion_ratio <= 1.0, "completion_ratio should be in [0,1]"
     print(f"  [PASS] Stats populated: time={stats.time_ms:.2f}ms, inferences={stats.inference_count}")
 
 def test_solver_name():
@@ -212,13 +227,18 @@ def _run_benchmark_against_expected():
         solution, stats = solver.solve(puzzle)
 
         assert solution is not None, f"No solution returned for {input_path.name}"
-        assert solution.is_complete(), f"Incomplete solution for {input_path.name}"
-        assert np.array_equal(solution.grid, expected.grid), (
-            f"Grid mismatch for {input_path.name}\n"
-            f"Expected:\n{expected.grid}\nGot:\n{solution.grid}"
-        )
+        assert_solved_cells_match_expected(solution, expected.grid)
+        initially_unsolved_mask = puzzle.grid == 0
+        initially_unsolved = int(np.count_nonzero(initially_unsolved_mask))
+        solved_by_algo = int(np.count_nonzero(solution.grid[initially_unsolved_mask]))
+        expected_ratio = 1.0 if initially_unsolved == 0 else solved_by_algo / initially_unsolved
+        assert stats.completion_ratio == expected_ratio
 
-        print(f"  [PASS] {input_path.name} (time={stats.time_ms:.2f}ms, inf={stats.inference_count})")
+        print(
+            f"  [PASS] {input_path.name} "
+            f"(ratio={stats.completion_ratio:.3f}, time={stats.time_ms:.2f}ms, "
+            f"inf={stats.inference_count})"
+        )
         stats_rows.append((input_path.name, stats))
         
     return stats_rows

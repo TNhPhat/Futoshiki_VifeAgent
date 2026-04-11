@@ -43,6 +43,7 @@ class BruteForceSolver(BaseSolver):
         tracemalloc.start()
         t0 = time.perf_counter()
         expansions = 0
+        initially_unsolved = int((puzzle.grid == 0).sum())
 
         empty_cells = puzzle.get_empty_cells()
         domain = range(1, puzzle.N + 1)
@@ -67,6 +68,10 @@ class BruteForceSolver(BaseSolver):
             inference_count=0,
             node_expansions=expansions,
             backtracks=0,
+            completion_ratio=self._completion_ratio(
+                initially_unsolved=initially_unsolved,
+                solution=result,
+            ),
         )
         return result, stats
 
@@ -106,3 +111,16 @@ class BruteForceSolver(BaseSolver):
                 return False
 
         return True
+
+    @staticmethod
+    def _completion_ratio(initially_unsolved: int, solution: Puzzle | None) -> float:
+        if initially_unsolved == 0:
+            return 1.0
+        if solution is None:
+            return 0.0
+        solved_after = int((solution.grid != 0).sum()) - (
+            solution.N * solution.N - initially_unsolved
+        )
+        if solved_after < 0:
+            return 0.0
+        return solved_after / initially_unsolved
