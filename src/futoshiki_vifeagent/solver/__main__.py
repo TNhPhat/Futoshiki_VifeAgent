@@ -67,10 +67,15 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     args = parser.parse_args(argv_list or None)
 
-    if args.command in (None, "run"):
-        benchmark_argv: list[str] = ["--solver", args.solver]
-        if args.benchmark_root:
-            benchmark_argv.extend(["--benchmark-root", args.benchmark_root])
+    if args.command is None:
+        return benchmark_runner.main(["--solver", "backward_chaining"])
+
+    if args.command == "run":
+        solver_key = getattr(args, "solver", "backward_chaining")
+        benchmark_root = getattr(args, "benchmark_root", None)
+        benchmark_argv: list[str] = ["--solver", solver_key]
+        if benchmark_root:
+            benchmark_argv.extend(["--benchmark-root", benchmark_root])
         return benchmark_runner.main(benchmark_argv)
 
     if args.command == "generate":
