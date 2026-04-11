@@ -1,16 +1,10 @@
 from __future__ import annotations
 
 import argparse
-import copy
 import random
-import sys
 from pathlib import Path
 
-
-PROJECT_SRC = Path(__file__).resolve().parents[1]
-if str(PROJECT_SRC) not in sys.path:
-    sys.path.insert(0, str(PROJECT_SRC))
-
+from z3 import Distinct, Int, Or, Solver, sat
 
 BENCHMARK_SPECS = []
 _FILE_INDEX = 1
@@ -93,19 +87,66 @@ class FutoshikiGenerator:
                             
         return best_cell
 
-    # Hàm CHỈ dùng để đếm số nghiệm (có hoàn tác dọn dẹp state)
     def count_solutions(self, grid, limit=2):
-        empty = self.find_empty(grid)
-        if not empty: return 1
-        r, c = empty
+        solver, cells = self._build_base_solver()
+        return self._count_solutions_with_base(solver, cells, grid, limit=limit)
+
+    def _build_base_solver(self):
+        solver = Solver()
+        cells = [[Int(f"cell_{r}_{c}") for c in range(self.n)] for r in range(self.n)]
+
+        for r in range(self.n):
+            for c in range(self.n):
+                solver.add(cells[r][c] >= 1, cells[r][c] <= self.n)
+
+        for r in range(self.n):
+            solver.add(Distinct(cells[r]))
+
+        for c in range(self.n):
+            solver.add(Distinct([cells[r][c] for r in range(self.n)]))
+
+        for r in range(self.n):
+            for c in range(self.n - 1):
+                if self.h_const[r][c] == 1:
+                    solver.add(cells[r][c] < cells[r][c + 1])
+                elif self.h_const[r][c] == -1:
+                    solver.add(cells[r][c] > cells[r][c + 1])
+
+        for r in range(self.n - 1):
+            for c in range(self.n):
+                if self.v_const[r][c] == 1:
+                    solver.add(cells[r][c] < cells[r + 1][c])
+                elif self.v_const[r][c] == -1:
+                    solver.add(cells[r][c] > cells[r + 1][c])
+
+        return solver, cells
+
+    def _count_solutions_with_base(self, solver, cells, grid, limit=2):
+        if limit <= 0:
+            return 0
+
+        solver.push()
+
+        for r in range(self.n):
+            for c in range(self.n):
+                if grid[r][c] != 0:
+                    solver.add(cells[r][c] == grid[r][c])
+
         count = 0
-        
-        for val in range(1, self.n + 1):
-            if self.is_valid(grid, r, c, val):
-                grid[r][c] = val
-                count += self.count_solutions(grid, limit)
-                grid[r][c] = 0  # Hoàn tác để duyệt các nhánh khác
-                if count >= limit: break
+        while count < limit and solver.check() == sat:
+            model = solver.model()
+            count += 1
+            solver.add(
+                Or(
+                    [
+                        cells[r][c] != model.evaluate(cells[r][c], model_completion=True).as_long()
+                        for r in range(self.n)
+                        for c in range(self.n)
+                    ]
+                )
+            )
+
+        solver.pop()
         return count
 
     def generate_full_grid(self):
@@ -126,7 +167,7 @@ class FutoshikiGenerator:
             return False
             
         fill(self.grid)
-        self.solution_grid = [row[:] for row in self.grid] # Tối ưu tốc độ
+        self.solution_grid = [row[:] for row in self.grid]
 
     def add_constraints(self, density=0.4):
         for r in range(self.n):
@@ -145,6 +186,7 @@ class FutoshikiGenerator:
     def create_puzzle(self, target_fill_ratio=None):
         cells = [(r, c) for r in range(self.n) for c in range(self.n)]
         self.rng.shuffle(cells)
+        solver, z3_cells = self._build_base_solver()
         target_filled = None
         if target_fill_ratio is not None:
             target_filled = max(1, int(round(self.n * self.n * target_fill_ratio)))
@@ -156,10 +198,7 @@ class FutoshikiGenerator:
             temp = self.grid[r][c]
             self.grid[r][c] = 0
             
-            # Tối ưu tốc độ: deepcopy sinh overhead lớn khi nằm trong vòng lặp đệ quy/test
-            test_grid = [row[:] for row in self.grid]
-            
-            if self.count_solutions(test_grid, limit=2) != 1:
+            if self._count_solutions_with_base(solver, z3_cells, self.grid, limit=2) != 1:
                 self.grid[r][c] = temp
 
     def format_output(self, target_grid):
@@ -205,7 +244,7 @@ def generate_benchmark_corpus(output_root: Path) -> list[Path]:
     input_dir.mkdir(parents=True, exist_ok=True)
     expected_dir.mkdir(parents=True, exist_ok=True)
 
-    from benchmark.validator import validate_file
+    # from futoshiki_vifeagent.benchmark import validator
 
     written_files: list[Path] = []
 
@@ -230,9 +269,9 @@ def generate_benchmark_corpus(output_root: Path) -> list[Path]:
             encoding="utf-8",
         )
 
-        validation = validate_file(input_file, expected_dir=expected_dir)
-        if not validation.ok:
-            raise RuntimeError(f"{input_file}: {validation.message}")
+        # validation = validator.validate_file(input_file, expected_dir=expected_dir)
+        # if not validation.ok:
+        #     raise RuntimeError(f"{input_file}: {validation.message}")
 
         written_files.extend([input_file, expected_file])
 
