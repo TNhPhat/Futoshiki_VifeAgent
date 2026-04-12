@@ -1,18 +1,25 @@
-test_name,time_ms,memory_kb,inference_count,node_expansions,backtracks
-puzzle_01_4x4_easy.txt,11.605700012296438,119.1484375,79,0,0
-puzzle_02_4x4_medium.txt,19.992999965324998,152.89453125,102,0,0
-puzzle_03_4x4_medium.txt,27.772500179708004,162.263671875,169,0,0
-puzzle_04_4x4_hard.txt,19.316700054332614,150.46875,119,0,0
-puzzle_05_5x5_easy.txt,75.52170008420944,295.744140625,177,0,0
-puzzle_06_5x5_medium.txt,66.2364000454545,365.9609375,210,0,0
-puzzle_07_5x5_medium.txt,155.66709986887872,409.767578125,492,0,0
-puzzle_08_5x5_hard.txt,900.898199994117,435.302734375,2478,0,0
-puzzle_09_6x6_easy.txt,162.622099975124,634.51953125,336,0,0
-puzzle_10_6x6_medium.txt,284.9455999676138,836.513671875,542,0,0
-puzzle_11_6x6_medium.txt,2659.6404002048075,923.791015625,4679,0,0
-puzzle_12_6x6_hard.txt,2622.6290001068264,922.296875,3817,0,0
-puzzle_13_7x7_easy.txt,743.4557999949902,1319.962890625,864,0,0
-puzzle_14_7x7_medium.txt,4978.646400151774,1666.8203125,5298,0,0
-puzzle_15_7x7_medium.txt,98648.46339984797,1798.84765625,86277,0,0
-puzzle_16_7x7_hard.txt,16300.633699866012,1876.30078125,14968,0,0
-puzzle_17_8x8_easy.txt,2416.7723001446575,2566.1640625,1582,0,0
+test_name,solver_name,puzzle_size,input_file,ok,message,time_ms,memory_kb,inference_count,node_expansions,backtracks,completion_ratio
+puzzle_01_4x4_easy.txt,Backward Chaining (Generate-and-Test SLD),4,puzzle_01_4x4_easy.txt,True,matches expected solution,11.04919999997378,147.6611328125,53,0,0,1.0
+puzzle_02_4x4_medium.txt,Backward Chaining (Generate-and-Test SLD),4,puzzle_02_4x4_medium.txt,True,matches expected solution,13.998399999991307,168.671875,67,0,0,1.0
+puzzle_03_4x4_medium.txt,Backward Chaining (Generate-and-Test SLD),4,puzzle_03_4x4_medium.txt,True,matches expected solution,12.478099999981396,176.6171875,69,0,0,1.0
+puzzle_04_4x4_hard.txt,Backward Chaining (Generate-and-Test SLD),4,puzzle_04_4x4_hard.txt,True,matches expected solution,12.752199999994218,169.0703125,64,0,0,1.0
+puzzle_05_5x5_easy.txt,Backward Chaining (Generate-and-Test SLD),5,puzzle_05_5x5_easy.txt,True,matches expected solution,34.38909999999851,313.0390625,106,0,0,1.0
+puzzle_06_5x5_medium.txt,Backward Chaining (Generate-and-Test SLD),5,puzzle_06_5x5_medium.txt,True,matches expected solution,39.40910000000031,377.34375,123,0,0,1.0
+puzzle_07_5x5_medium.txt,Backward Chaining (Generate-and-Test SLD),5,puzzle_07_5x5_medium.txt,True,matches expected solution,37.173899999999094,416.75,131,0,0,1.0
+puzzle_08_5x5_hard.txt,Backward Chaining (Generate-and-Test SLD),5,puzzle_08_5x5_hard.txt,True,matches expected solution,41.09819999999331,410.9921875,128,0,0,1.0
+puzzle_09_6x6_easy.txt,Backward Chaining (Generate-and-Test SLD),6,puzzle_09_6x6_easy.txt,True,matches expected solution,93.37650000000508,644.828125,180,0,0,1.0
+puzzle_10_6x6_medium.txt,Backward Chaining (Generate-and-Test SLD),6,puzzle_10_6x6_medium.txt,True,matches expected solution,118.57259999999314,850.8203125,211,0,0,1.0
+puzzle_11_6x6_medium.txt,Backward Chaining (Generate-and-Test SLD),6,puzzle_11_6x6_medium.txt,True,matches expected solution,129.39900000000648,930.84375,220,0,0,1.0
+puzzle_12_6x6_hard.txt,Backward Chaining (Generate-and-Test SLD),6,puzzle_12_6x6_hard.txt,True,matches expected solution,133.53589999999826,942.375,217,0,0,1.0
+puzzle_13_7x7_easy.txt,Backward Chaining (Generate-and-Test SLD),7,puzzle_13_7x7_easy.txt,True,matches expected solution,244.00799999997957,1335.78125,285,0,0,1.0
+puzzle_14_7x7_medium.txt,Backward Chaining (Generate-and-Test SLD),7,puzzle_14_7x7_medium.txt,True,matches expected solution,325.41920000002733,1686.9609375,320,0,0,1.0
+puzzle_15_7x7_medium.txt,Backward Chaining (Generate-and-Test SLD),7,puzzle_15_7x7_medium.txt,True,matches expected solution,335.2366000000018,1817.6328125,335,0,0,1.0
+puzzle_16_7x7_hard.txt,Backward Chaining (Generate-and-Test SLD),7,puzzle_16_7x7_hard.txt,True,matches expected solution,367.59929999999486,1901.734375,342,0,0,1.0
+puzzle_17_8x8_easy.txt,Backward Chaining (Generate-and-Test SLD),8,puzzle_17_8x8_easy.txt,True,matches expected solution,780.7735000000093,2584.828125,427,0,0,1.0
+puzzle_18_8x8_medium.txt,Backward Chaining (Generate-and-Test SLD),8,puzzle_18_8x8_medium.txt,True,matches expected solution,806.6677999999854,3414.2890625,500,0,0,1.0
+puzzle_19_8x8_medium.txt,Backward Chaining (Generate-and-Test SLD),8,puzzle_19_8x8_medium.txt,True,matches expected solution,825.1566000000139,3574.640625,503,0,0,1.0
+puzzle_20_8x8_hard.txt,Backward Chaining (Generate-and-Test SLD),8,puzzle_20_8x8_hard.txt,True,matches expected solution,1188778.8320999998,4002.7578125,426824,0,0,1.0
+puzzle_21_9x9_easy.txt,Backward Chaining (Generate-and-Test SLD),9,puzzle_21_9x9_easy.txt,True,matches expected solution,1474.8948000001292,4588.0234375,603,0,0,1.0
+puzzle_22_9x9_medium.txt,Backward Chaining (Generate-and-Test SLD),9,puzzle_22_9x9_medium.txt,True,matches expected solution,2407.8073999999106,6031.2109375,675,0,0,1.0
+puzzle_23_9x9_medium.txt,Backward Chaining (Generate-and-Test SLD),9,puzzle_23_9x9_medium.txt,True,matches expected solution,37351.8317999999,6734.859375,7725,0,0,1.0
+puzzle_24_9x9_hard.txt,Backward Chaining (Generate-and-Test SLD),9,puzzle_24_9x9_hard.txt,True,matches expected solution,24965014.175,7329.703125,3450900,0,0,1.0
