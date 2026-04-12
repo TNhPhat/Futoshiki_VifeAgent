@@ -21,6 +21,7 @@ from heuristics import (
     EmptyCellHeuristic,
     DomainSizeHeuristic,
     MinConflictsHeuristic,
+    AC3Heuristic,
 )
 from futoshiki_vifeagent.solver import BaseSolver
 from futoshiki_vifeagent.utils import StatsCsvWriter
@@ -52,6 +53,7 @@ def _solver_registry() -> Dict[str, BaseSolver | type[BaseSolver]]:
         "astar_h1": AStarSolver(EmptyCellHeuristic()),
         "astar_h2": AStarSolver(DomainSizeHeuristic()),
         "astar_h3": AStarSolver(MinConflictsHeuristic()),
+        "astar_h4": AStarSolver(AC3Heuristic()),
     }
 
 
@@ -215,7 +217,7 @@ def main(argv: list[str] | None = None) -> int:
             "Solver key: forward_chaining, forward_then_ac3_backward_chaining, "
             "backtracking_forward_chaining, "
             "backward_chaining, ac3_backward_chaining, brute_force, "
-            "astar_h1, astar_h2, astar_h3, all"
+            "astar_h1, astar_h2, astar_h3, astar_h4, all"
         ),
     )
     parser.add_argument(
