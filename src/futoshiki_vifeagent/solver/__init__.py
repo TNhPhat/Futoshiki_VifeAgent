@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from solver import (
     AC3BackwardChaining,
+    AStarSolver,
     BackwardChaining,
     BacktrackingForwardChaining,
     BaseSolver,
@@ -18,4 +19,5 @@ __all__ = [
     "BruteForceSolver",
     "ForwardChaining",
     "ForwardThenAC3BackwardChaining",
+    "AStarSolver",
 ]
