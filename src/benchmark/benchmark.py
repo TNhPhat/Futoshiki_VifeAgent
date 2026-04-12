@@ -10,11 +10,17 @@ import numpy as np
 from futoshiki_vifeagent.core import Parser
 from futoshiki_vifeagent.solver import (
     AC3BackwardChaining,
+    AStarSolver,
     BackwardChaining,
     BacktrackingForwardChaining,
     BruteForceSolver,
     ForwardChaining,
     ForwardThenAC3BackwardChaining,
+)
+from heuristics import (
+    EmptyCellHeuristic,
+    DomainSizeHeuristic,
+    MinConflictsHeuristic,
 )
 from futoshiki_vifeagent.solver import BaseSolver
 from futoshiki_vifeagent.utils import StatsCsvWriter
@@ -35,7 +41,7 @@ class BenchmarkRow:
     completion_ratio: float
 
 
-def _solver_registry() -> Dict[str, type[BaseSolver]]:
+def _solver_registry() -> Dict[str, BaseSolver | type[BaseSolver]]:
     return {
         "forward_chaining": ForwardChaining,
         "forward_then_ac3_backward_chaining": ForwardThenAC3BackwardChaining,
@@ -43,6 +49,9 @@ def _solver_registry() -> Dict[str, type[BaseSolver]]:
         "backward_chaining": BackwardChaining,
         "ac3_backward_chaining": AC3BackwardChaining,
         "brute_force": BruteForceSolver,
+        "astar_h1": AStarSolver(EmptyCellHeuristic()),
+        "astar_h2": AStarSolver(DomainSizeHeuristic()),
+        "astar_h3": AStarSolver(MinConflictsHeuristic()),
     }
 
 
@@ -152,7 +161,8 @@ def run_benchmark(solver_key: str, benchmark_root: Path) -> tuple[list[tuple[str
     if not expected_dir.exists():
         raise FileNotFoundError(f"benchmark expected directory not found: {expected_dir}")
 
-    solver = registry[solver_key]()
+    entry = registry[solver_key]
+    solver = entry if isinstance(entry, BaseSolver) else entry()
     solver_name = solver.get_name()
     parser = Parser()
     rows: list[tuple[str, BenchmarkRow]] = []
@@ -204,7 +214,8 @@ def main(argv: list[str] | None = None) -> int:
         help=(
             "Solver key: forward_chaining, forward_then_ac3_backward_chaining, "
             "backtracking_forward_chaining, "
-            "backward_chaining, ac3_backward_chaining, brute_force, all"
+            "backward_chaining, ac3_backward_chaining, brute_force, "
+            "astar_h1, astar_h2, astar_h3, all"
         ),
     )
     parser.add_argument(
