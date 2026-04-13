@@ -14,11 +14,11 @@ import numpy as np
 from models.game_state import GameState, SolveStep
 from app.solver_registry import make_solver
 
-# Solvers that use on_step for live cell-by-cell animation.
-# All A* variants and these inference-based solvers emit steps natively.
+# Solvers that support live animation via the on_step callback.
 _ANIMATED_SOLVERS = {
     "astar_h1", "astar_h2", "astar_h3", "astar_h4",
     "forward_chaining", "btfc", "brute_force", "forward_then_ac3",
+    "backward_chaining", "ac3_backward_chaining",
 }
 
 
@@ -113,19 +113,6 @@ def start_solve(state: GameState) -> None:
                 # These solvers accept on_step natively (including all A* variants).
                 solver = make_solver(solver_name)
                 solver.solve(puzzle, on_step=on_step)
-
-            elif solver_name in ("backward_chaining", "ac3_backward_chaining"):
-                # BC solvers operate at the logical level; no intermediate grid
-                # state during proof.  Run fully, then replay solution cell-by-cell.
-                solver = make_solver(solver_name)
-                solution, _stats_obj = solver.solve(puzzle)
-                if solution is not None and not stop_event.is_set():
-                    base = puzzle.grid.copy()
-                    for r in range(puzzle.N):
-                        for c in range(puzzle.N):
-                            if solution.grid[r, c] != 0 and base[r, c] == 0:
-                                base[r, c] = solution.grid[r, c]
-                                on_step(base.copy())
 
             else:
                 # Fallback: run fully, push a single final step.

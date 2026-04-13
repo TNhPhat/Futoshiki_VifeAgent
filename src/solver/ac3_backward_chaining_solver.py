@@ -47,7 +47,10 @@ class AC3BackwardChaining(BackwardChaining):
         var_names = [f"v_{r}_{c}" for r, c in empty_cells]
 
         engine = BackwardChainingEngine(kb=kb)
-        substitution = engine.prove_all([goal])
+        subst_callback = self._make_subst_callback(
+            on_step, puzzle, empty_cells, var_names,
+        ) if on_step is not None else None
+        substitution = engine.prove_all([goal], on_step=subst_callback)
 
         self._end_trace()
         self._stats.inference_count = engine.inference_count
