@@ -9,7 +9,6 @@ Optional AC3-pruned mode:
     - Per-cell Domain_r_c(v) facts
     - Solution rule body uses Domain_r_c(var)
 """
-from collections import deque
 from typing import Dict, List, Tuple, Deque
 from futoshiki_vifeagent.core import Puzzle
 
@@ -395,112 +394,48 @@ class HornClauseGenerator:
         puzzle: Puzzle,
         empty_cells: list[tuple[int, int]] | None = None,
     ) -> dict[tuple[int, int], set[int]] | None:
+        """
+        Compute arc-consistent domains for empty cells.
+
+        Delegates to :class:`constraints.ac3.AC3Propagator` for the
+        actual AC-3 propagation.
+
+        Parameters
+        ----------
+        puzzle : Puzzle
+            The puzzle definition.
+        empty_cells : list or None
+            Specific empty cells to consider.  Defaults to all empty
+            cells in the puzzle.
+
+        Returns
+        -------
+        dict or None
+            Per-cell domains after AC-3 pruning, or ``None`` on
+            contradiction.
+        """
+        from constraints.ac3 import AC3Propagator
+
         n = puzzle.N
         if empty_cells is None:
             empty_cells = list(puzzle.get_empty_cells())
         if not empty_cells:
             return {}
 
-        empty_set = set(empty_cells)
+        # Build initial domains from row/col elimination
+        full_domain = set(range(1, n + 1))
+        row_used: list[set[int]] = [set() for _ in range(n)]
+        col_used: list[set[int]] = [set() for _ in range(n)]
+        for r, c, value in puzzle.get_given_cells():
+            row_used[r].add(value)
+            col_used[c].add(value)
+
+        domains: dict[tuple[int, int], set[int]] | None = {}
+        for r, c in empty_cells:
+            domain = full_domain - row_used[r] - col_used[c]
+            if not domain:
+                return None
+            domains[(r, c)] = domain
 
         domains = HornClauseGenerator.relative_size_domains(puzzle, empty_cells=empty_cells)
-        if domains is None:
-            return None
-
-        REL_NEQ = 1
-        REL_LT = 2
-        REL_GT = 4
-
-        constraints: dict[tuple[tuple[int, int], tuple[int, int]], int] = {}
-        neighbors: dict[tuple[int, int], set[tuple[int, int]]] = {cell: set() for cell in empty_cells}
-
-        def add_constraint(a: tuple[int, int], b: tuple[int, int], relation_mask: int) -> None:
-            key = (a, b)
-            constraints[key] = constraints.get(key, 0) | relation_mask
-            neighbors[a].add(b)
-
-        row_to_empty: dict[int, list[tuple[int, int]]] = {}
-        col_to_empty: dict[int, list[tuple[int, int]]] = {}
-        for r, c in empty_cells:
-            row_to_empty.setdefault(r, []).append((r, c))
-            col_to_empty.setdefault(c, []).append((r, c))
-
-        for row_cells in row_to_empty.values():
-            for i in range(len(row_cells)):
-                for j in range(i + 1, len(row_cells)):
-                    a = row_cells[i]
-                    b = row_cells[j]
-                    add_constraint(a, b, REL_NEQ)
-                    add_constraint(b, a, REL_NEQ)
-
-        for col_cells in col_to_empty.values():
-            for i in range(len(col_cells)):
-                for j in range(i + 1, len(col_cells)):
-                    a = col_cells[i]
-                    b = col_cells[j]
-                    add_constraint(a, b, REL_NEQ)
-                    add_constraint(b, a, REL_NEQ)
-
-        for inequality in puzzle.h_constraints + puzzle.v_constraints:
-            a = inequality.cell1
-            b = inequality.cell2
-            a_is_empty = a in empty_set
-            b_is_empty = b in empty_set
-
-            if a_is_empty and b_is_empty:
-                if inequality.direction == "<":
-                    add_constraint(a, b, REL_LT)
-                    add_constraint(b, a, REL_GT)
-                else:
-                    add_constraint(a, b, REL_GT)
-                    add_constraint(b, a, REL_LT)
-            elif not (a_is_empty or b_is_empty):
-                continue
-
-        queue: deque[tuple[tuple[int, int], tuple[int, int]]] = deque(constraints.keys())
-        while queue:
-            xi, xj = queue.popleft()
-            relation_mask = constraints[(xi, xj)]
-            if HornClauseGenerator._revise(domains, xi, xj, relation_mask):
-                if not domains[xi]:
-                    return None
-                for xk in neighbors[xi]:
-                    if xk != xj:
-                        queue.append((xk, xi))
-
-        return domains
-    
-    @staticmethod
-    def _revise(
-        domains: dict[tuple[int, int], set[int]],
-        xi: tuple[int, int],
-        xj: tuple[int, int],
-        relation_mask: int,
-    ) -> bool:
-        domain_i = domains[xi]
-        domain_j = domains[xj]
-        revised = False
-
-        if relation_mask == 1 and len(domain_j) == 1:
-            blocked_value = next(iter(domain_j))
-            if blocked_value in domain_i:
-                domain_i.remove(blocked_value)
-                return True
-            return False
-
-        for value_i in tuple(domain_i):
-            if not any(HornClauseGenerator._satisfies_relations(value_i, value_j, relation_mask) for value_j in domain_j):
-                domain_i.remove(value_i)
-                revised = True
-
-        return revised
-    
-    @staticmethod
-    def _satisfies_relations(a: int, b: int, relation_mask: int) -> bool:
-        if relation_mask & 1 and a == b:
-            return False
-        if relation_mask & 2 and not (a < b):
-            return False
-        if relation_mask & 4 and not (a > b):
-            return False
-        return True
+        return AC3Propagator.propagate(domains, puzzle)

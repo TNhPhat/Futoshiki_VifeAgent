@@ -13,10 +13,12 @@ import tracemalloc
 
 from futoshiki_vifeagent.core import Puzzle
 from futoshiki_vifeagent.utils import Stats
+from constraints.ac3 import AC3Propagator
 from heuristics import (
     BaseHeuristic,
     DomainSizeHeuristic,
 )
+from heuristics.ac3_heuristic import AC3Heuristic
 from search.astar import AStarEngine
 
 from .base_solver import BaseSolver
@@ -58,7 +60,14 @@ class AStarSolver(BaseSolver):
         t0 = time.perf_counter()
         initially_unsolved = int((puzzle.grid == 0).sum())
 
-        engine = AStarEngine(heuristic=self._heuristic)
+        engine = AStarEngine(
+            heuristic=self._heuristic,
+            propagator=(
+                AC3Propagator()
+                if isinstance(self._heuristic, AC3Heuristic)
+                else None
+            ),
+        )
         goal_state = engine.solve(puzzle)
 
         elapsed_ms = (time.perf_counter() - t0) * 1000

@@ -16,6 +16,7 @@ from typing import Callable, Optional
 
 import numpy as np
 
+from constraints.ac3 import AC3Propagator
 from core.puzzle import Puzzle
 from heuristics.base_heuristic import BaseHeuristic
 from search.state import SearchState
@@ -29,10 +30,19 @@ class AStarEngine:
     ----------
     heuristic : BaseHeuristic
         The heuristic function to estimate remaining cost.
+    propagator : AC3Propagator or None
+        Optional AC-3 propagator.  When provided, full arc-consistency
+        propagation replaces the basic singleton-fill loop during
+        initial-state construction and child-state creation.
     """
 
-    def __init__(self, heuristic: BaseHeuristic) -> None:
+    def __init__(
+        self,
+        heuristic: BaseHeuristic,
+        propagator: AC3Propagator | None = None,
+    ) -> None:
         self._heuristic = heuristic
+        self._propagator = propagator
         self.node_expansions: int = 0
 
     # ------------------------------------------------------------------
@@ -156,9 +166,17 @@ class AStarEngine:
                         domains, grid, N, i, j, v, puzzle,
                     )
 
-        # Iterative singleton propagation
-        if not self._propagate_singletons(domains, grid, N, puzzle):
-            return None  # contradiction
+        # Propagation: AC-3 if available, else basic singletons
+        if self._propagator is not None:
+            result = self._propagator.propagate(domains, puzzle)
+            if result is None:
+                return None  # contradiction
+            # Auto-fill singletons produced by AC-3
+            if not self._propagate_singletons(domains, grid, N, puzzle):
+                return None
+        else:
+            if not self._propagate_singletons(domains, grid, N, puzzle):
+                return None  # contradiction
 
         g = self._compute_violations(grid, N, puzzle)
         state = SearchState(grid=grid, domains=domains, g=g, h=0)
@@ -200,11 +218,22 @@ class AStarEngine:
             if len(dom) == 0:
                 return None  # contradiction
 
-        # Propagate singletons
-        if not self._propagate_singletons(
-            child.domains, child.grid, N, puzzle,
-        ):
-            return None  # contradiction
+        # Propagation: AC-3 if available, else basic singletons
+        if self._propagator is not None:
+            result = self._propagator.propagate(
+                child.domains, puzzle,
+            )
+            if result is None:
+                return None  # contradiction
+            if not self._propagate_singletons(
+                child.domains, child.grid, N, puzzle,
+            ):
+                return None
+        else:
+            if not self._propagate_singletons(
+                child.domains, child.grid, N, puzzle,
+            ):
+                return None  # contradiction
 
         child.g = self._compute_violations(child.grid, N, puzzle)
         child.h = self._heuristic.estimate(child, puzzle)
