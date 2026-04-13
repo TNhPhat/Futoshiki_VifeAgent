@@ -23,9 +23,25 @@ class BackwardChaining(BaseSolver):
         self._start_trace()
         initially_unsolved = int((puzzle.grid == 0).sum())
 
-        kb = HornClauseGenerator.generate(puzzle)
-        goal = self._generate_goal(puzzle)
         empty_cells = HornClauseGenerator.get_empty_cells(puzzle)
+        domains = HornClauseGenerator.hidden_single_domains(
+            puzzle,
+            empty_cells=empty_cells,
+        )
+        if domains is None:
+            self._end_trace()
+            self._stats.completion_ratio = self._completion_ratio(
+                initially_unsolved=initially_unsolved,
+                solution=None,
+            )
+            return None, self._stats
+
+        kb = HornClauseGenerator.generate(
+            puzzle,
+            domains=domains,
+            use_cell_domains=True,
+        )
+        goal = self._generate_goal(puzzle)
         var_names = [f"v_{r}_{c}" for r, c in empty_cells]
 
         engine = BackwardChainingEngine(kb=kb)

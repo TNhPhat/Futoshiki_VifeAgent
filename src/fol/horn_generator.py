@@ -47,6 +47,201 @@ class HornClauseGenerator:
         return kb
 
     @staticmethod
+    def exclusion_domains(
+        puzzle: Puzzle,
+        empty_cells: list[tuple[int, int]] | None = None,
+    ) -> dict[tuple[int, int], set[int]] | None:
+        n = puzzle.N
+        if empty_cells is None:
+            empty_cells = list(puzzle.get_empty_cells())
+        if not empty_cells:
+            return {}
+
+        full_domain = set(range(1, n + 1))
+        row_used = [set() for _ in range(n)]
+        col_used = [set() for _ in range(n)]
+        for r, c, value in puzzle.get_given_cells():
+            row_used[r].add(value)
+            col_used[c].add(value)
+
+        domains: dict[tuple[int, int], set[int]] = {}
+        for r, c in empty_cells:
+            domain = full_domain - row_used[r] - col_used[c]
+            if not domain:
+                return None
+            domains[(r, c)] = domain
+
+        for constraint in puzzle.h_constraints + puzzle.v_constraints:
+            a = constraint.cell1
+            b = constraint.cell2
+            a_is_empty = a in domains
+            b_is_empty = b in domains
+
+            if a_is_empty and not b_is_empty:
+                other_value = int(puzzle.grid[b[0], b[1]])
+                if constraint.direction == "<":
+                    domains[a] = {v for v in domains[a] if v < other_value}
+                else:
+                    domains[a] = {v for v in domains[a] if v > other_value}
+                if not domains[a]:
+                    return None
+            elif b_is_empty and not a_is_empty:
+                other_value = int(puzzle.grid[a[0], a[1]])
+                if constraint.direction == "<":
+                    domains[b] = {v for v in domains[b] if v > other_value}
+                else:
+                    domains[b] = {v for v in domains[b] if v < other_value}
+                if not domains[b]:
+                    return None
+            elif not a_is_empty and not b_is_empty:
+                a_val = int(puzzle.grid[a[0], a[1]])
+                b_val = int(puzzle.grid[b[0], b[1]])
+                if constraint.direction == "<" and not (a_val < b_val):
+                    return None
+                if constraint.direction == ">" and not (a_val > b_val):
+                    return None
+
+        return domains
+
+    @staticmethod
+    def relative_size_domains(
+        puzzle: Puzzle,
+        empty_cells: list[tuple[int, int]] | None = None,
+    ) -> dict[tuple[int, int], set[int]] | None:
+        if empty_cells is None:
+            empty_cells = list(puzzle.get_empty_cells())
+        if not empty_cells:
+            return {}
+
+        domains = HornClauseGenerator.exclusion_domains(puzzle, empty_cells=empty_cells)
+        if domains is None:
+            return None
+
+        return HornClauseGenerator._propagate_relative_size(puzzle, domains)
+
+    @staticmethod
+    def hidden_single_domains(
+        puzzle: Puzzle,
+        empty_cells: list[tuple[int, int]] | None = None,
+    ) -> dict[tuple[int, int], set[int]] | None:
+        n = puzzle.N
+        if empty_cells is None:
+            empty_cells = list(puzzle.get_empty_cells())
+        if not empty_cells:
+            return {}
+
+        domains = HornClauseGenerator.relative_size_domains(puzzle, empty_cells=empty_cells)
+        if domains is None:
+            return None
+
+        changed = True
+        while changed:
+            changed = False
+
+            for row in range(n):
+                row_cells = [(r, c) for r, c in empty_cells if r == row and (r, c) in domains]
+                for value in range(1, n + 1):
+                    carriers = [cell for cell in row_cells if value in domains[cell]]
+                    if len(carriers) == 1 and domains[carriers[0]] != {value}:
+                        domains[carriers[0]] = {value}
+                        changed = True
+
+            for col in range(n):
+                col_cells = [(r, c) for r, c in empty_cells if c == col and (r, c) in domains]
+                for value in range(1, n + 1):
+                    carriers = [cell for cell in col_cells if value in domains[cell]]
+                    if len(carriers) == 1 and domains[carriers[0]] != {value}:
+                        domains[carriers[0]] = {value}
+                        changed = True
+
+            propagated = HornClauseGenerator._propagate_relative_size(puzzle, domains)
+            if propagated is None:
+                return None
+            if propagated != domains:
+                domains = propagated
+                changed = True
+
+        return domains
+
+    @staticmethod
+    def _propagate_relative_size(
+        puzzle: Puzzle,
+        domains: dict[tuple[int, int], set[int]],
+    ) -> dict[tuple[int, int], set[int]] | None:
+        domains = {cell: set(values) for cell, values in domains.items()}
+        changed = True
+        while changed:
+            changed = False
+            if HornClauseGenerator._propagate_singleton_exclusions(puzzle, domains):
+                changed = True
+                if any(not values for values in domains.values()):
+                    return None
+
+            for constraint in puzzle.h_constraints + puzzle.v_constraints:
+                a = constraint.cell1
+                b = constraint.cell2
+                a_is_empty = a in domains
+                b_is_empty = b in domains
+
+                if not (a_is_empty and b_is_empty):
+                    continue
+
+                if constraint.direction == "<":
+                    smaller_cell = a
+                    larger_cell = b
+                else:
+                    smaller_cell = b
+                    larger_cell = a
+
+                smaller_domain = domains[smaller_cell]
+                larger_domain = domains[larger_cell]
+
+                if not smaller_domain or not larger_domain:
+                    return None
+
+                max_larger = max(larger_domain)
+                min_smaller = min(smaller_domain)
+
+                pruned_smaller = {value for value in smaller_domain if value < max_larger}
+                pruned_larger = {value for value in larger_domain if value > min_smaller}
+
+                if not pruned_smaller or not pruned_larger:
+                    return None
+
+                if pruned_smaller != smaller_domain:
+                    domains[smaller_cell] = pruned_smaller
+                    changed = True
+                if pruned_larger != larger_domain:
+                    domains[larger_cell] = pruned_larger
+                    changed = True
+
+        return domains
+
+    @staticmethod
+    def _propagate_singleton_exclusions(
+        puzzle: Puzzle,
+        domains: dict[tuple[int, int], set[int]],
+    ) -> bool:
+        changed = False
+        singleton_values = {
+            cell: next(iter(values))
+            for cell, values in domains.items()
+            if len(values) == 1
+        }
+
+        for (r, c), value in singleton_values.items():
+            for other_cell, other_domain in domains.items():
+                if other_cell == (r, c):
+                    continue
+                if value not in other_domain:
+                    continue
+                if other_cell[0] == r or other_cell[1] == c:
+                    other_domain.remove(value)
+                    changed = True
+
+        return changed
+
+    @staticmethod
     def _get_facts(
         puzzle: Puzzle,
         domains: Dict[Tuple[int, int], set[int]] | None = None,
@@ -208,19 +403,9 @@ class HornClauseGenerator:
 
         empty_set = set(empty_cells)
 
-        domains: dict[tuple[int, int], set[int]] = {}
-        full_domain = set(range(1, n + 1))
-        row_used = [set() for _ in range(n)]
-        col_used = [set() for _ in range(n)]
-        for r, c, value in puzzle.get_given_cells():
-            row_used[r].add(value)
-            col_used[c].add(value)
-
-        for r, c in empty_cells:
-            domain = full_domain - row_used[r] - col_used[c]
-            if not domain:
-                return None
-            domains[(r, c)] = domain
+        domains = HornClauseGenerator.relative_size_domains(puzzle, empty_cells=empty_cells)
+        if domains is None:
+            return None
 
         REL_NEQ = 1
         REL_LT = 2
@@ -269,29 +454,8 @@ class HornClauseGenerator:
                 else:
                     add_constraint(a, b, REL_GT)
                     add_constraint(b, a, REL_LT)
-            elif a_is_empty:
-                other_value = int(puzzle.grid[b[0], b[1]])
-                if inequality.direction == "<":
-                    domains[a] = {v for v in domains[a] if v < other_value}
-                else:
-                    domains[a] = {v for v in domains[a] if v > other_value}
-                if not domains[a]:
-                    return None
-            elif b_is_empty:
-                other_value = int(puzzle.grid[a[0], a[1]])
-                if inequality.direction == "<":
-                    domains[b] = {v for v in domains[b] if v > other_value}
-                else:
-                    domains[b] = {v for v in domains[b] if v < other_value}
-                if not domains[b]:
-                    return None
-            else:
-                a_val = int(puzzle.grid[a[0], a[1]])
-                b_val = int(puzzle.grid[b[0], b[1]])
-                if inequality.direction == "<" and not (a_val < b_val):
-                    return None
-                if inequality.direction == ">" and not (a_val > b_val):
-                    return None
+            elif not (a_is_empty or b_is_empty):
+                continue
 
         queue: deque[tuple[tuple[int, int], tuple[int, int]]] = deque(constraints.keys())
         while queue:
