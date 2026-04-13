@@ -123,7 +123,21 @@ class GameState:
     # ------------------------------------------------------------------
 
     show_generate_dialog: bool = False
-    generate_size: int = 5  # selected size for generation
+    generate_size: int = 5        # selected size for generation
+    generate_difficulty: str = "medium"  # "easy" | "medium" | "hard"
+
+    # ------------------------------------------------------------------
+    # Solver dropdown
+    # ------------------------------------------------------------------
+
+    show_solver_dropdown: bool = False
+
+    # ------------------------------------------------------------------
+    # Shake animation (invalid note attempt)
+    # ------------------------------------------------------------------
+
+    # cell → seconds remaining for shake animation
+    shake_timers: dict[tuple[int, int], float] = field(default_factory=dict)
 
     # ------------------------------------------------------------------
     # Notification message (displayed briefly in the grid area)

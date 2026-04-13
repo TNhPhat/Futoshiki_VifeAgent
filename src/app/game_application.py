@@ -14,6 +14,7 @@ from typing import Any
 import numpy as np
 import pygame
 
+from heuristics.ac3_heuristic import AC3Heuristic
 from heuristics.domain_size_heuristic import DomainSizeHeuristic
 from heuristics.empty_cell_heuristic import EmptyCellHeuristic
 from heuristics.min_conflicts_heuristic import MinConflictsHeuristic
@@ -47,6 +48,8 @@ def _make_solver(name: str):
         return AStarSolver(DomainSizeHeuristic())
     if name == "astar_h3":
         return AStarSolver(MinConflictsHeuristic())
+    if name == "astar_h4":
+        return AStarSolver(AC3Heuristic())
     if name == "forward_chaining":
         return ForwardChaining()
     if name == "backward_chaining":
@@ -66,6 +69,7 @@ _SOLVER_CYCLE = [
     "astar_h2",
     "astar_h1",
     "astar_h3",
+    "astar_h4",
     "forward_chaining",
     "btfc",
     "forward_then_ac3",
@@ -161,6 +165,19 @@ class GameApplication:
         if state.show_generate_dialog:
             return  # wait for generation to finish
 
+        # --- Solver dropdown (check before mode tabs so it closes on any click) ---
+        if rects.get("solver_select", pygame.Rect(0,0,0,0)).collidepoint(pos):
+            state.show_solver_dropdown = not state.show_solver_dropdown
+            return
+        if state.show_solver_dropdown:
+            for item_rect, sname in rects.get("_solver_dropdown_items", []):
+                if item_rect.collidepoint(pos):
+                    state.solver_name = sname
+                    state.show_solver_dropdown = False
+                    return
+            state.show_solver_dropdown = False
+            return  # consume click so nothing else fires accidentally
+
         # --- Mode tabs ---
         if rects.get("tab_play", pygame.Rect(0,0,0,0)).collidepoint(pos):
             self._switch_mode(AppMode.PLAY)
@@ -170,11 +187,6 @@ class GameApplication:
             return
         if rects.get("tab_menu", pygame.Rect(0,0,0,0)).collidepoint(pos):
             self._switch_mode(AppMode.MENU)
-            return
-
-        # --- Solver panel buttons ---
-        if rects.get("solver_select", pygame.Rect(0,0,0,0)).collidepoint(pos):
-            self._cycle_solver()
             return
         if state.mode == AppMode.SOLVE:
             if rects.get("solve_play",    pygame.Rect(0,0,0,0)).collidepoint(pos):
@@ -198,11 +210,15 @@ class GameApplication:
             state.show_puzzle_list = not state.show_puzzle_list
             return
         if rects.get("generate", pygame.Rect(0,0,0,0)).collidepoint(pos):
-            self._start_generate(state.generate_size)
+            self._start_generate(state.generate_size, state.generate_difficulty)
             return
         for sz in range(4, 10):
             if rects.get(f"gen_size_{sz}", pygame.Rect(0,0,0,0)).collidepoint(pos):
                 state.generate_size = sz
+                return
+        for diff in ("easy", "medium", "hard"):
+            if rects.get(f"gen_diff_{diff}", pygame.Rect(0,0,0,0)).collidepoint(pos):
+                state.generate_difficulty = diff
                 return
 
         # --- Play panel ---
@@ -290,7 +306,9 @@ class GameApplication:
         digit = _key_to_digit(event.key)
         if digit is not None and 1 <= digit <= board.puzzle.N:
             if self._state.notes_mode:
-                board.toggle_note(i, j, digit)
+                if not board.toggle_note(i, j, digit):
+                    # Blocked — shake the cell to indicate the contradiction.
+                    self._state.shake_timers[(i, j)] = 0.4
             else:
                 board.set_value(i, j, digit)
             if board.is_complete():
@@ -332,6 +350,13 @@ class GameApplication:
             del state.backtrack_timers[c]
         for c in list(state.backtrack_timers):
             state.backtrack_timers[c] = max(0.0, state.backtrack_timers[c] - dt)
+
+        # Shake timers (invalid note attempt feedback)
+        expired = [c for c, t in state.shake_timers.items() if t <= 0]
+        for c in expired:
+            del state.shake_timers[c]
+        for c in list(state.shake_timers):
+            state.shake_timers[c] = max(0.0, state.shake_timers[c] - dt)
 
         # Auto-advance solve steps.
         # The worker throttles itself via stop_event.wait(), so there is
@@ -541,6 +566,7 @@ class GameApplication:
                         "astar_h1": EmptyCellHeuristic(),
                         "astar_h2": DomainSizeHeuristic(),
                         "astar_h3": MinConflictsHeuristic(),
+                        "astar_h4": AC3Heuristic(),
                     }
                     heuristic = heuristic_map.get(solver_name, DomainSizeHeuristic())
                     engine = AStarEngine(heuristic=heuristic)
@@ -605,14 +631,14 @@ class GameApplication:
         state._puzzle_name = entry.name.replace("_", " ")
         state.notes_mode = False
 
-    def _start_generate(self, n: int) -> None:
+    def _start_generate(self, n: int, difficulty: str = "medium") -> None:
         state = self._state
         state.show_generate_dialog = True
         state.reset_solve_state()
 
         def worker():
             try:
-                puzzle = self._repo.generate(n)
+                puzzle = self._repo.generate(n, difficulty=difficulty)
                 board  = Board(puzzle=puzzle)
                 state.board = board
                 state._puzzle_name = f"Random {n}x{n}"
@@ -641,18 +667,6 @@ class GameApplication:
         r, c, v = result
         board.set_value(r, c, v)
         board.selected = (r, c)
-
-    # ------------------------------------------------------------------
-    # Solver cycling
-    # ------------------------------------------------------------------
-
-    def _cycle_solver(self) -> None:
-        state = self._state
-        try:
-            idx = _SOLVER_CYCLE.index(state.solver_name)
-        except ValueError:
-            idx = -1
-        state.solver_name = _SOLVER_CYCLE[(idx + 1) % len(_SOLVER_CYCLE)]
 
     # ------------------------------------------------------------------
     # Shutdown

@@ -81,29 +81,34 @@ class Board:
     # Notes (pencil marks)
     # ------------------------------------------------------------------
 
-    def toggle_note(self, i: int, j: int, v: int) -> None:
+    def toggle_note(self, i: int, j: int, v: int) -> bool:
         """
         Toggle pencil mark v in cell (i, j).
 
         Only allowed on empty, non-given cells.
         Adding a value that already appears in the same row or column is
-        silently ignored (the number cannot be a valid candidate there).
+        blocked (the number cannot be a valid candidate there).
         Removing an existing note is always allowed.
+
+        Returns True if the note was added or removed, False if the add
+        was blocked (so the caller can show feedback such as a shake).
         """
         if self.puzzle.is_given(i, j):
-            return
+            return False
         if self.grid[i, j] != 0:
-            return  # can't note on a filled cell
+            return False
         cell_notes = self.notes.setdefault((i, j), set())
         if v in cell_notes:
             cell_notes.discard(v)
-        else:
-            # Block adding a note that is already placed in the same row or column.
-            N = self.puzzle.N
-            row_has_v = any(int(self.grid[i, c]) == v for c in range(N) if c != j)
-            col_has_v = any(int(self.grid[r, j]) == v for r in range(N) if r != i)
-            if not row_has_v and not col_has_v:
-                cell_notes.add(v)
+            return True
+        # Block adding a note that is already placed in the same row or column.
+        N = self.puzzle.N
+        row_has_v = any(int(self.grid[i, c]) == v for c in range(N) if c != j)
+        col_has_v = any(int(self.grid[r, j]) == v for r in range(N) if r != i)
+        if not row_has_v and not col_has_v:
+            cell_notes.add(v)
+            return True
+        return False  # blocked — caller should show feedback
 
     # ------------------------------------------------------------------
     # Undo

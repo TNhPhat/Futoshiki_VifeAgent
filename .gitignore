@@ -208,3 +208,6 @@ __marimo__/
 CLAUDE.md
 
 *.csv
+.claude
+.gitnexus
+AGENTS.md

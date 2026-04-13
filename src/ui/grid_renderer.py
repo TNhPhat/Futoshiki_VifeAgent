@@ -3,6 +3,7 @@ Grid renderer: draws the N×N cell grid with values, notes, and highlights.
 """
 from __future__ import annotations
 
+import math
 import pygame
 
 import ui.theme as T
@@ -29,6 +30,12 @@ class GridRenderer(BaseRenderer):
         for i in range(N):
             for j in range(N):
                 rect = cell_rect(i, j, grid_rect, cell_size, gap)
+                # Apply shake offset for invalid note attempts.
+                t = state.shake_timers.get((i, j), 0.0)
+                if t > 0:
+                    elapsed = 0.4 - t
+                    shake_x = int(math.sin(elapsed * 45) * 6 * (t / 0.4))
+                    rect = rect.move(shake_x, 0)
                 self._draw_cell(
                     surface, state, board, display_grid,
                     i, j, rect, cell_size, N,
