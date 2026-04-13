@@ -11,16 +11,13 @@ import threading
 
 import numpy as np
 
-from heuristics.ac3_heuristic import AC3Heuristic
-from heuristics.domain_size_heuristic import DomainSizeHeuristic
-from heuristics.empty_cell_heuristic import EmptyCellHeuristic
-from heuristics.min_conflicts_heuristic import MinConflictsHeuristic
 from models.game_state import GameState, SolveStep
-from search.astar import AStarEngine
 from app.solver_registry import make_solver
 
-# Solvers whose solve() method accepts an on_step callback directly.
+# Solvers that use on_step for live cell-by-cell animation.
+# All A* variants and these inference-based solvers emit steps natively.
 _ANIMATED_SOLVERS = {
+    "astar_h1", "astar_h2", "astar_h3", "astar_h4",
     "forward_chaining", "btfc", "brute_force", "forward_then_ac3",
 }
 
@@ -112,19 +109,8 @@ def start_solve(state: GameState) -> None:
 
     def worker() -> None:
         try:
-            if solver_name.startswith("astar"):
-                heuristic_map = {
-                    "astar_h1": EmptyCellHeuristic(),
-                    "astar_h2": DomainSizeHeuristic(),
-                    "astar_h3": MinConflictsHeuristic(),
-                    "astar_h4": AC3Heuristic(),
-                }
-                heuristic = heuristic_map.get(solver_name, DomainSizeHeuristic())
-                engine = AStarEngine(heuristic=heuristic)
-                engine.solve(puzzle, on_step=on_step)
-
-            elif solver_name in _ANIMATED_SOLVERS:
-                # These solvers accept on_step natively.
+            if solver_name in _ANIMATED_SOLVERS:
+                # These solvers accept on_step natively (including all A* variants).
                 solver = make_solver(solver_name)
                 solver.solve(puzzle, on_step=on_step)
 

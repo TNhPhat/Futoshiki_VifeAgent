@@ -41,7 +41,7 @@ class AStarSolver(BaseSolver):
         super().__init__()
         self._heuristic = heuristic or DomainSizeHeuristic()
 
-    def solve(self, puzzle: Puzzle) -> tuple[Puzzle | None, Stats]:
+    def solve(self, puzzle: Puzzle, on_step=None) -> tuple[Puzzle | None, Stats]:
         """
         Solve the puzzle using A* search.
 
@@ -68,7 +68,7 @@ class AStarSolver(BaseSolver):
                 else None
             ),
         )
-        goal_state = engine.solve(puzzle)
+        goal_state = engine.solve(puzzle, on_step=on_step)
 
         elapsed_ms = (time.perf_counter() - t0) * 1000
         _, peak_bytes = tracemalloc.get_traced_memory()

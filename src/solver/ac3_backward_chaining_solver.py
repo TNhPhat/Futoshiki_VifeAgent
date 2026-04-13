@@ -15,7 +15,7 @@ class AC3BackwardChaining(BackwardChaining):
     Backward chaining solver variant with AC-3 domain pruning.
     """
 
-    def solve(self, puzzle: Puzzle) -> tuple[Puzzle | None, Stats]:
+    def solve(self, puzzle: Puzzle, on_step=None) -> tuple[Puzzle | None, Stats]:
         self._start_trace()
         initially_unsolved = int((puzzle.grid == 0).sum())
 

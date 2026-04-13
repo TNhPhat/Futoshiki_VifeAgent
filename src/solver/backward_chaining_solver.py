@@ -19,7 +19,7 @@ class BackwardChaining(BaseSolver):
         self._t0: float = 0.0
         self._stats: Stats = Stats(0,0,0,0,0)
 
-    def solve(self, puzzle: Puzzle) -> tuple[Puzzle | None, Stats]:
+    def solve(self, puzzle: Puzzle, on_step=None) -> tuple[Puzzle | None, Stats]:
         self._start_trace()
         initially_unsolved = int((puzzle.grid == 0).sum())
 
