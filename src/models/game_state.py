@@ -87,11 +87,9 @@ class GameState:
     # Auto-advance when True; paused when False.
     is_playing: bool = False
 
-    # Steps per second (1.0 – 20.0).
+    # Steps per second (1.0 – 20.0).  The worker thread sleeps 1/speed
+    # seconds between emitting steps, so this directly controls playback pace.
     speed: float = 1.0
-
-    # Fractional step accumulator for sub-frame speed control.
-    step_accumulator: float = 0.0
 
     # The grid currently displayed in SOLVE mode.
     current_display_grid: np.ndarray | None = None
@@ -166,7 +164,6 @@ class GameState:
         self.solve_thread = None
         self.stop_event = threading.Event()
         self.is_playing = False
-        self.step_accumulator = 0.0
         self.current_display_grid = None
         self.solver_cells = set()
         self.backtrack_timers = {}

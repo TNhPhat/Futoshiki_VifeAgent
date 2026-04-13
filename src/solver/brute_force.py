@@ -25,7 +25,7 @@ class BruteForceSolver(BaseSolver):
         """Return the solver's display name."""
         return "BruteForce"
 
-    def solve(self, puzzle: Puzzle) -> tuple[Puzzle | None, Stats]:
+    def solve(self, puzzle: Puzzle, on_step=None) -> tuple[Puzzle | None, Stats]:
         """
         Solve *puzzle* by exhaustive enumeration.
 
@@ -33,6 +33,9 @@ class BruteForceSolver(BaseSolver):
         ----------
         puzzle : Puzzle
             The puzzle to solve; given cells are treated as fixed.
+        on_step : callable, optional
+            Called with each candidate grid snapshot so callers can animate
+            the search.  Raising StopIteration aborts the search cleanly.
 
         Returns
         -------
@@ -49,14 +52,19 @@ class BruteForceSolver(BaseSolver):
         domain = range(1, puzzle.N + 1)
 
         result: Puzzle | None = None
-        for assignment in product(domain, repeat=len(empty_cells)):
-            expansions += 1
-            candidate = puzzle.copy()
-            for (i, j), v in zip(empty_cells, assignment):
-                candidate.grid[i, j] = v
-            if self._is_valid(candidate):
-                result = candidate
-                break
+        try:
+            for assignment in product(domain, repeat=len(empty_cells)):
+                expansions += 1
+                candidate = puzzle.copy()
+                for (i, j), v in zip(empty_cells, assignment):
+                    candidate.grid[i, j] = v
+                if on_step is not None:
+                    on_step(candidate.grid.copy())
+                if self._is_valid(candidate):
+                    result = candidate
+                    break
+        except StopIteration:
+            pass
 
         elapsed_ms = (time.perf_counter() - t0) * 1000
         _, peak_bytes = tracemalloc.get_traced_memory()

@@ -52,7 +52,8 @@ class Board:
         Set cell (i, j) to value v (0 = clear).
 
         Pushes a snapshot onto the undo stack, updates the grid,
-        clears pencil marks for that cell, and recomputes errors.
+        clears pencil marks for that cell, removes v from the notes of
+        every peer in the same row/column, and recomputes errors.
         Given cells are silently ignored.
         """
         if self.puzzle.is_given(i, j):
@@ -61,6 +62,15 @@ class Board:
         self.grid[i, j] = v
         # Clear notes for this cell when a definite value is entered.
         self.notes.pop((i, j), None)
+        # Remove v from all peers' notes so stale candidates disappear.
+        if v != 0:
+            N = self.puzzle.N
+            for c in range(N):
+                if c != j and (i, c) in self.notes:
+                    self.notes[(i, c)].discard(v)
+            for r in range(N):
+                if r != i and (r, j) in self.notes:
+                    self.notes[(r, j)].discard(v)
         self._recompute_errors()
 
     def clear_value(self, i: int, j: int) -> None:
@@ -76,6 +86,9 @@ class Board:
         Toggle pencil mark v in cell (i, j).
 
         Only allowed on empty, non-given cells.
+        Adding a value that already appears in the same row or column is
+        silently ignored (the number cannot be a valid candidate there).
+        Removing an existing note is always allowed.
         """
         if self.puzzle.is_given(i, j):
             return
@@ -85,7 +98,12 @@ class Board:
         if v in cell_notes:
             cell_notes.discard(v)
         else:
-            cell_notes.add(v)
+            # Block adding a note that is already placed in the same row or column.
+            N = self.puzzle.N
+            row_has_v = any(int(self.grid[i, c]) == v for c in range(N) if c != j)
+            col_has_v = any(int(self.grid[r, j]) == v for r in range(N) if r != i)
+            if not row_has_v and not col_has_v:
+                cell_notes.add(v)
 
     # ------------------------------------------------------------------
     # Undo

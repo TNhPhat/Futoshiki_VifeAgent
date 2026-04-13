@@ -157,6 +157,8 @@ class HudRenderer(BaseRenderer):
             "astar_h2": "A* h2 (domain size)",
             "astar_h3": "A* h3 (min conflicts)",
             "forward_chaining": "Forward Chaining",
+            "btfc": "Backtrack + Fwd Chain",
+            "forward_then_ac3": "FC -> AC3 + BC",
             "backward_chaining": "Backward Chaining",
             "ac3_backward_chaining": "AC3 + Backward Chain",
             "brute_force": "Brute Force",

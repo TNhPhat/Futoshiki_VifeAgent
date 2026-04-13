@@ -25,6 +25,7 @@ from solver import (
     AC3BackwardChaining,
     AStarSolver,
     BackwardChaining,
+    BacktrackingForwardChaining,
     BruteForceSolver,
     ForwardChaining,
     ForwardThenAC3BackwardChaining,
@@ -54,6 +55,8 @@ def _make_solver(name: str):
         return AC3BackwardChaining()
     if name == "forward_then_ac3":
         return ForwardThenAC3BackwardChaining()
+    if name == "btfc":
+        return BacktrackingForwardChaining()
     if name == "brute_force":
         return BruteForceSolver()
     return AStarSolver(DomainSizeHeuristic())
@@ -64,6 +67,8 @@ _SOLVER_CYCLE = [
     "astar_h1",
     "astar_h3",
     "forward_chaining",
+    "btfc",
+    "forward_then_ac3",
     "backward_chaining",
     "ac3_backward_chaining",
     "brute_force",
@@ -328,42 +333,40 @@ class GameApplication:
         for c in list(state.backtrack_timers):
             state.backtrack_timers[c] = max(0.0, state.backtrack_timers[c] - dt)
 
-        # Auto-advance solve steps
+        # Auto-advance solve steps.
+        # The worker throttles itself via stop_event.wait(), so there is
+        # usually at most one step ready per frame.  Drain everything that's
+        # available immediately — no accumulator needed.
         if state.mode == AppMode.SOLVE and state.is_playing:
-            state.step_accumulator += dt * state.speed
-            steps_to_drain = int(state.step_accumulator)
-            if steps_to_drain > 0:
-                state.step_accumulator -= steps_to_drain
-                self._advance_step(steps_to_drain)
-
-        # Mark finished only when the thread is dead AND the queue has been
-        # fully drained by the normal step-by-step mechanism.  Never drain
-        # the whole queue at once — that would skip the visualisation.
-        if (
-            state.mode == AppMode.SOLVE
-            and state.solve_thread is not None
-            and not state.solve_thread.is_alive()
-            and not state.solve_finished
-            and state.solve_steps.empty()
-        ):
-            state.solve_finished = True
-            state.is_playing = False
-            state.solve_succeeded = (
-                state.current_display_grid is not None
-                and state.board is not None
-                and int(np.count_nonzero(state.current_display_grid))
-                   == state.board.puzzle.N ** 2
-            )
-            if state.solve_succeeded:
-                state.set_notification("Puzzle solved!", 3.0)
-            else:
-                state.set_notification("No solution found.", 3.0)
+            self._drain_available_steps()
 
     # ------------------------------------------------------------------
     # Solve step management
     # ------------------------------------------------------------------
 
+    def _drain_available_steps(self) -> None:
+        """Drain every step currently in the queue and apply them.
+        Called each frame while is_playing.  Marks the solve finished when
+        the queue empties and the worker thread has exited."""
+        state = self._state
+        prev_grid = state.current_display_grid
+        drained = False
+
+        while True:
+            try:
+                step: SolveStep = state.solve_steps.get_nowait()
+            except queue.Empty:
+                break
+            self._apply_step(step, prev_grid)
+            prev_grid = state.current_display_grid
+            drained = True
+
+        # If nothing was in the queue and the thread is gone, we're done.
+        if not drained and not state.is_solving() and not state.solve_finished:
+            self._mark_finished()
+
     def _advance_step(self, count: int) -> None:
+        """Manually advance by `count` steps (Step button / arrow key)."""
         state = self._state
         prev_grid = state.current_display_grid
 
@@ -371,14 +374,26 @@ class GameApplication:
             try:
                 step: SolveStep = state.solve_steps.get_nowait()
             except queue.Empty:
-                # No more steps; check if thread is done
-                if not state.is_solving():
-                    state.solve_finished = True
-                    state.is_playing = False
+                if not state.is_solving() and not state.solve_finished:
+                    self._mark_finished()
                 break
-
             self._apply_step(step, prev_grid)
             prev_grid = state.current_display_grid
+
+    def _mark_finished(self) -> None:
+        state = self._state
+        state.solve_finished = True
+        state.is_playing = False
+        state.solve_succeeded = (
+            state.current_display_grid is not None
+            and state.board is not None
+            and int(np.count_nonzero(state.current_display_grid))
+               == state.board.puzzle.N ** 2
+        )
+        if state.solve_succeeded:
+            state.set_notification("Puzzle solved!", 3.0)
+        else:
+            state.set_notification("No solution found.", 3.0)
 
     def _apply_step(self, step: SolveStep, prev_grid) -> None:
         state = self._state
@@ -452,34 +467,76 @@ class GameApplication:
         # Running stats (shared between closure and engine ref)
         _stats: dict = {"nodes": 0, "backtracks": 0, "prev_grid": None}
 
-        def on_step(grid_snapshot: np.ndarray) -> None:
+        def _emit(grid: np.ndarray, is_bt: bool) -> None:
+            """Put one SolveStep on the queue, then wait 1/speed seconds.
+            Raises StopIteration if stop_event fires during the wait."""
+            _stats["nodes"] += 1
+            step_queue.put(SolveStep(
+                grid=grid.copy(),
+                is_backtrack=is_bt,
+                node_count=_stats["nodes"],
+                elapsed_ms=(time.perf_counter() - t0) * 1000,
+                backtrack_count=_stats["backtracks"],
+            ))
+            # Throttle: wait 1/speed seconds before the next step.
+            # wait() returns True if stop_event is set during the wait.
+            delay = 1.0 / max(0.5, state.speed)
+            if stop_event.wait(timeout=delay):
+                raise StopIteration
+
+        def on_step(grid_snapshot: np.ndarray, is_backtrack: bool = False) -> None:
             if stop_event.is_set():
                 raise StopIteration
 
             prev = _stats["prev_grid"]
-            is_bt = (
+            _stats["prev_grid"] = grid_snapshot.copy()
+
+            # Trust the explicit flag if the solver provides it; otherwise infer.
+            is_bt = is_backtrack or (
                 prev is not None
                 and int(np.count_nonzero(grid_snapshot))
                    < int(np.count_nonzero(prev))
             )
             if is_bt:
                 _stats["backtracks"] += 1
+                # Backtrack: emit the new (partially-cleared) grid as one step
+                _emit(grid_snapshot, is_bt=True)
+            else:
+                # Forward progress: decompose into individual cell assignments
+                # so the user sees each cell being filled one by one.
+                if prev is None:
+                    # First node: diff against the original puzzle givens
+                    base = puzzle.grid.copy()
+                else:
+                    base = prev.copy()
 
-            _stats["nodes"] += 1
-            _stats["prev_grid"] = grid_snapshot.copy()
+                # Collect cells that are newly assigned in this node
+                newly_filled = [
+                    (r, c)
+                    for r in range(puzzle.N)
+                    for c in range(puzzle.N)
+                    if grid_snapshot[r, c] != 0 and base[r, c] == 0
+                ]
 
-            step_queue.put(SolveStep(
-                grid=grid_snapshot.copy(),
-                is_backtrack=is_bt,
-                node_count=_stats["nodes"],
-                elapsed_ms=(time.perf_counter() - t0) * 1000,
-                backtrack_count=_stats["backtracks"],
-            ))
+                if not newly_filled:
+                    # Nothing changed visually — still emit so stats update
+                    _emit(grid_snapshot, is_bt=False)
+                else:
+                    # Emit each cell being filled as a separate step
+                    running = base.copy()
+                    for r, c in newly_filled:
+                        running[r, c] = grid_snapshot[r, c]
+                        _emit(running, is_bt=False)
+
+        # Solvers whose solve() accepts an on_step callback directly.
+        _ANIMATED_SOLVERS = {
+            "forward_chaining", "btfc", "brute_force", "forward_then_ac3",
+        }
 
         def worker() -> None:
             try:
                 if solver_name.startswith("astar"):
-                    # Use AStarEngine directly so we can pass on_step
+                    # Use AStarEngine directly so we can pass on_step.
                     heuristic_map = {
                         "astar_h1": EmptyCellHeuristic(),
                         "astar_h2": DomainSizeHeuristic(),
@@ -488,8 +545,28 @@ class GameApplication:
                     heuristic = heuristic_map.get(solver_name, DomainSizeHeuristic())
                     engine = AStarEngine(heuristic=heuristic)
                     engine.solve(puzzle, on_step=on_step)
+
+                elif solver_name in _ANIMATED_SOLVERS:
+                    # These solvers accept on_step natively.
+                    solver = _make_solver(solver_name)
+                    solver.solve(puzzle, on_step=on_step)
+
+                elif solver_name in ("backward_chaining", "ac3_backward_chaining"):
+                    # BC solvers operate at the logical level; no intermediate
+                    # grid state during proof.  Run fully, then replay the
+                    # solution cell-by-cell so the user sees something.
+                    solver = _make_solver(solver_name)
+                    solution, _stats_obj = solver.solve(puzzle)
+                    if solution is not None and not stop_event.is_set():
+                        base = puzzle.grid.copy()
+                        for r in range(puzzle.N):
+                            for c in range(puzzle.N):
+                                if solution.grid[r, c] != 0 and base[r, c] == 0:
+                                    base[r, c] = solution.grid[r, c]
+                                    on_step(base.copy())
+
                 else:
-                    # Non-A* solvers: run fully, push single final step
+                    # Fallback: run fully, push single final step.
                     solver = _make_solver(solver_name)
                     solution, _stats_obj = solver.solve(puzzle)
                     if solution is not None and not stop_event.is_set():
@@ -538,7 +615,7 @@ class GameApplication:
                 puzzle = self._repo.generate(n)
                 board  = Board(puzzle=puzzle)
                 state.board = board
-                state._puzzle_name = f"Random {n}×{n}"
+                state._puzzle_name = f"Random {n}x{n}"
                 state.notes_mode = False
             except Exception as exc:
                 print(f"[generate worker] {exc}")

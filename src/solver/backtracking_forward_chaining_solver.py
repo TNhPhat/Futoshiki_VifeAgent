@@ -21,11 +21,11 @@ class BacktrackingForwardChaining(BaseSolver):
         self._t0: float = 0.0
         self._stats: Stats = Stats(0, 0, 0, 0, 0)
 
-    def solve(self, puzzle: Puzzle) -> tuple[Puzzle | None, Stats]:
+    def solve(self, puzzle: Puzzle, on_step=None) -> tuple[Puzzle | None, Stats]:
         self._start_trace()
         initially_unsolved = int((puzzle.grid == 0).sum())
 
-        solution = self._search(puzzle.copy())
+        solution = self._search(puzzle.copy(), on_step=on_step)
 
         self._end_trace()
         self._stats.completion_ratio = self._completion_ratio(
@@ -34,7 +34,7 @@ class BacktrackingForwardChaining(BaseSolver):
         )
         return solution, self._stats
 
-    def _search(self, puzzle: Puzzle) -> Puzzle | None:
+    def _search(self, puzzle: Puzzle, on_step=None) -> Puzzle | None:
         facts, inference_count = ForwardChaining._derive_facts(puzzle)
         self._stats.inference_count += inference_count
 
@@ -45,6 +45,10 @@ class BacktrackingForwardChaining(BaseSolver):
         propagated = ForwardChaining._build_solution(puzzle, facts)
         if not self._is_partial_solution_consistent(propagated):
             return None
+
+        # Emit the state after forward-chaining propagation at this level.
+        if on_step is not None:
+            on_step(propagated.grid.copy())
 
         if propagated.is_complete():
             if ForwardChaining._is_valid_complete_solution(propagated):
@@ -61,9 +65,13 @@ class BacktrackingForwardChaining(BaseSolver):
             child = propagated.copy()
             child.grid[row, col] = value
 
-            result = self._search(child)
+            result = self._search(child, on_step=on_step)
             if result is not None:
                 return result
+
+            # Backtrack: emit the pre-branch state so cleared cells flash orange.
+            if on_step is not None:
+                on_step(propagated.grid.copy(), True)
             self._stats.backtracks += 1
 
         return None
