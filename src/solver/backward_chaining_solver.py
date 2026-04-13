@@ -6,6 +6,8 @@ from typing import Optional
 import time
 import tracemalloc
 
+import numpy as np
+
 from futoshiki_vifeagent.core import Puzzle
 from futoshiki_vifeagent.fol import HornClauseGenerator, Literal
 from futoshiki_vifeagent.inference import BackwardChainingEngine
@@ -19,7 +21,7 @@ class BackwardChaining(BaseSolver):
         self._t0: float = 0.0
         self._stats: Stats = Stats(0,0,0,0,0)
 
-    def solve(self, puzzle: Puzzle) -> tuple[Puzzle | None, Stats]:
+    def solve(self, puzzle: Puzzle, on_step=None) -> tuple[Puzzle | None, Stats]:
         self._start_trace()
         initially_unsolved = int((puzzle.grid == 0).sum())
 
@@ -45,7 +47,10 @@ class BackwardChaining(BaseSolver):
         var_names = [f"v_{r}_{c}" for r, c in empty_cells]
 
         engine = BackwardChainingEngine(kb=kb)
-        substitution = engine.prove_all([goal])
+        subst_callback = self._make_subst_callback(
+            on_step, puzzle, empty_cells, var_names,
+        ) if on_step is not None else None
+        substitution = engine.prove_all([goal], on_step=subst_callback)
 
         self._end_trace()
         self._stats.inference_count = engine.inference_count
@@ -69,6 +74,33 @@ class BackwardChaining(BaseSolver):
             solution=solution,
         )
         return solution, self._stats
+
+    def _make_subst_callback(self, on_step, puzzle, empty_cells, var_names):
+        """
+        Return a closure that converts a partial substitution dict to a grid
+        and calls on_step(grid) whenever the grid actually changes.
+
+        The substitution grows monotonically during proof (SLD never removes
+        bindings on a single path). When a branch fails and the engine
+        backtracks to try an alternative, the new partial substitution may
+        have fewer resolved cell variables → the grid will have fewer filled
+        cells, which on_step's caller detects as a backtrack.
+        """
+        base_grid = puzzle.grid.copy()
+        last_grid: list[np.ndarray | None] = [None]
+
+        def _on_subst(subst: dict) -> None:
+            grid = base_grid.copy()
+            for idx, (r, c) in enumerate(empty_cells):
+                val = self._resolve_value(var_names[idx], subst)
+                if val is not None and isinstance(val, int):
+                    grid[r, c] = val
+            prev = last_grid[0]
+            if prev is None or not np.array_equal(grid, prev):
+                last_grid[0] = grid.copy()
+                on_step(grid)
+
+        return _on_subst
 
     def _generate_goal(self, puzzle: Puzzle) -> Literal:
         return HornClauseGenerator.get_solution_goal(puzzle)

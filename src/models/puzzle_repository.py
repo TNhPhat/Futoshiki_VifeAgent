@@ -88,7 +88,19 @@ class InMemoryPuzzleRepository:
     # Generation
     # ------------------------------------------------------------------
 
-    def generate(self, n: int, seed: int | None = None) -> Puzzle:
+    # fill_ratio = fraction of cells revealed; density = inequality constraint density
+    _DIFFICULTY = {
+        "easy":   {"fill_ratio": 0.55, "density": 0.50},
+        "medium": {"fill_ratio": 0.35, "density": 0.40},
+        "hard":   {"fill_ratio": 0.20, "density": 0.25},
+    }
+
+    def generate(
+        self,
+        n: int,
+        difficulty: str = "medium",
+        seed: int | None = None,
+    ) -> Puzzle:
         """
         Generate a random Futoshiki puzzle of size n.
 
@@ -96,16 +108,20 @@ class InMemoryPuzzleRepository:
         ----------
         n : int
             Grid size (4–9 recommended).
+        difficulty : str
+            One of "easy", "medium", or "hard".
         seed : int or None
             Random seed for reproducibility.  If None, a random seed is used.
         """
         if seed is None:
             seed = random.randint(0, 999_999)
 
+        params = self._DIFFICULTY.get(difficulty, self._DIFFICULTY["medium"])
+
         gen = FutoshikiGenerator(n, seed=seed)
         gen.generate_full_grid()
-        gen.add_constraints(density=0.4)
-        gen.create_puzzle(target_fill_ratio=0.35)
+        gen.add_constraints(density=params["density"])
+        gen.create_puzzle(target_fill_ratio=params["fill_ratio"])
 
         return _generator_to_puzzle(gen)
 

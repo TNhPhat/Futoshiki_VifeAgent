@@ -65,8 +65,8 @@ _py = SIDE_PANEL_RECT.y
 _pw = SIDE_PANEL_W
 
 SOLVER_PANEL_RECT = pygame.Rect(_px, _py,           _pw, 185)
-PUZZLE_PANEL_RECT = pygame.Rect(_px, _py + 185,     _pw, 220)
-PLAY_PANEL_RECT   = pygame.Rect(_px, _py + 185+220, _pw, SCREEN_H - TITLE_BAR_H - 185 - 220)
+PUZZLE_PANEL_RECT = pygame.Rect(_px, _py + 185,     _pw, 265)
+PLAY_PANEL_RECT   = pygame.Rect(_px, _py + 185+265, _pw, SCREEN_H - TITLE_BAR_H - 185 - 265)
 
 # ---------------------------------------------------------------------------
 # Grid geometry helpers

@@ -92,6 +92,10 @@ class HudRenderer(BaseRenderer):
         elif state.show_generate_dialog:
             self._draw_generate_dialog(surface, state, mouse_pos)
 
+        # Solver dropdown drawn last so it appears above everything else
+        if state.show_solver_dropdown:
+            self._draw_solver_dropdown(surface, state, mouse_pos)
+
     # ------------------------------------------------------------------
     # Title bar
     # ------------------------------------------------------------------
@@ -151,11 +155,12 @@ class HudRenderer(BaseRenderer):
         _draw_label(surface, fnt_val, "SOLVER", px, py, T.CLR_LABEL_TITLE)
         py += 20
 
-        # Solver name selector (display only – clicking cycles solvers)
+        # Solver selector dropdown button
         solver_names = {
-            "astar_h1": "A* h1 (empty cells)",
             "astar_h2": "A* h2 (domain size)",
+            "astar_h1": "A* h1 (empty cells)",
             "astar_h3": "A* h3 (min conflicts)",
+            "astar_h4": "A* h4 (AC-3 domain)",
             "forward_chaining": "Forward Chaining",
             "btfc": "Backtrack + Fwd Chain",
             "forward_then_ac3": "FC -> AC3 + BC",
@@ -164,10 +169,15 @@ class HudRenderer(BaseRenderer):
             "brute_force": "Brute Force",
         }
         display_name = solver_names.get(state.solver_name, state.solver_name)
+        arrow = "v" if not state.show_solver_dropdown else "^"
         sel_rect = pygame.Rect(px, py, pw, 26)
-        _draw_button(surface, sel_rect, display_name, fnt_btn,
+        _draw_button(surface, sel_rect, f"{display_name}  {arrow}", fnt_btn,
+                     active=state.show_solver_dropdown,
                      hover=sel_rect.collidepoint(mouse_pos))
         state._hud_rects["solver_select"] = sel_rect
+        # Store solver_names for the dropdown overlay drawn at end of render()
+        state._hud_rects["_solver_names"] = solver_names
+        state._hud_rects["_solver_select_rect"] = sel_rect
         py += 32
 
         # Control buttons: Play / Pause / Step / Restart
@@ -261,9 +271,9 @@ class HudRenderer(BaseRenderer):
         state._hud_rects["load_puzzle"] = load_rect
         py += 32
 
-        # Generate section
-        _draw_label(surface, fnt_lbl, "Generate random  size:", px, py)
-        py += 18
+        # Generate section — size row
+        _draw_label(surface, fnt_lbl, "Generate  size:", px, py)
+        py += 16
         sizes = [4, 5, 6, 7, 8, 9]
         bw = (pw - (len(sizes) - 1) * 3) // len(sizes)
         bx = px
@@ -274,6 +284,21 @@ class HudRenderer(BaseRenderer):
                          hover=sr.collidepoint(mouse_pos))
             state._hud_rects[f"gen_size_{sz}"] = sr
             bx += bw + 3
+        py += 30
+
+        # Difficulty row
+        _draw_label(surface, fnt_lbl, "Difficulty:", px, py)
+        py += 16
+        diffs = [("Easy", "easy"), ("Med", "medium"), ("Hard", "hard")]
+        dw = (pw - 2 * 4) // 3
+        bx = px
+        for label, diff in diffs:
+            dr = pygame.Rect(bx, py, dw, 24)
+            _draw_button(surface, dr, label, fnt_btn,
+                         active=(state.generate_difficulty == diff),
+                         hover=dr.collidepoint(mouse_pos))
+            state._hud_rects[f"gen_diff_{diff}"] = dr
+            bx += dw + 4
         py += 30
 
         gen_rect = pygame.Rect(px, py, pw, 26)
@@ -393,6 +418,55 @@ class HudRenderer(BaseRenderer):
             txt = fnt_lbl.render(label, True, T.CLR_LABEL)
             surface.blit(txt, (row_rect.x + 8, row_rect.y + (row_h - txt.get_height()) // 2 - 1))
             state._hud_rects["_puzzle_rows"].append((row_rect, entry))
+
+    # ------------------------------------------------------------------
+    # Generate dialog
+    # ------------------------------------------------------------------
+
+    # ------------------------------------------------------------------
+    # Solver dropdown overlay
+    # ------------------------------------------------------------------
+
+    def _draw_solver_dropdown(self, surface, state, mouse_pos):
+        solver_names: dict = state._hud_rects.get("_solver_names", {})
+        anchor: pygame.Rect = state._hud_rects.get("_solver_select_rect")
+        if anchor is None or not solver_names:
+            return
+
+        fnt_btn = T.font("btn")
+        row_h = 26
+        pad = 4
+        # solver_names dict preserves insertion order — use it as the item list
+        items = list(solver_names.items())
+        overlay_w = anchor.width
+        overlay_h = len(items) * row_h + 2 * pad
+
+        ox = anchor.x
+        oy = anchor.bottom + 2
+
+        bg_rect = pygame.Rect(ox, oy, overlay_w, overlay_h)
+        pygame.draw.rect(surface, (245, 245, 240), bg_rect, border_radius=4)
+        pygame.draw.rect(surface, T.CLR_PANEL_BORDER, bg_rect, 1, border_radius=4)
+
+        state._hud_rects["_solver_dropdown_items"] = []
+        for idx, (skey, sname) in enumerate(items):
+            iy = oy + pad + idx * row_h
+            item_rect = pygame.Rect(ox + 2, iy, overlay_w - 4, row_h - 2)
+            is_current = (state.solver_name == skey)
+            is_hover = item_rect.collidepoint(mouse_pos)
+            if is_current:
+                bg = T.CLR_BTN_ACTIVE
+                fg = (255, 255, 255)
+            elif is_hover:
+                bg = T.CLR_BTN_HOVER
+                fg = T.CLR_BTN_TEXT
+            else:
+                bg = (245, 245, 240)
+                fg = T.CLR_LABEL
+            pygame.draw.rect(surface, bg, item_rect, border_radius=3)
+            txt = fnt_btn.render(sname, True, fg)
+            surface.blit(txt, (item_rect.x + 6, item_rect.centery - txt.get_height() // 2))
+            state._hud_rects["_solver_dropdown_items"].append((item_rect, skey))
 
     # ------------------------------------------------------------------
     # Generate dialog

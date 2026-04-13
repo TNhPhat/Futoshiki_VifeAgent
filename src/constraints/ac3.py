@@ -48,7 +48,7 @@ class AC3Propagator:
 
     @staticmethod
     def propagate(
-        domains: dict[tuple[int, int], set[int]],
+        domains: dict[tuple[int, int], set[int]] | None,
         puzzle: Puzzle,
     ) -> dict[tuple[int, int], set[int]] | None:
         """
