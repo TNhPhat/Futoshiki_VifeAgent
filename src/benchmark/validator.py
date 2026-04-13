@@ -2,16 +2,13 @@ from __future__ import annotations
 
 import argparse
 import sys
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 
 import numpy as np
-
-
-PROJECT_SRC = Path(__file__).resolve().parents[1]
-if str(PROJECT_SRC) not in sys.path:
-    sys.path.insert(0, str(PROJECT_SRC))
+from z3 import Distinct, Int, Or, Solver, sat
 
 from futoshiki_vifeagent.core import ParseError, Parser, Puzzle
 
@@ -21,6 +18,13 @@ class ValidationResult:
     path: Path
     ok: bool
     message: str
+
+
+def _progress_bar(done: int, total: int, width: int = 24) -> str:
+    if total <= 0:
+        return "[no files]"
+    filled = int((done / total) * width)
+    return "[" + ("#" * filled) + ("-" * (width - filled)) + "]"
 
 
 def _constraint_signature(puzzle: Puzzle) -> tuple[tuple[tuple[int, int], tuple[int, int], str], ...]:
@@ -54,42 +58,6 @@ def serialize_puzzle(puzzle: Puzzle) -> str:
     lines.extend(",".join(str(value) for value in row) for row in _row_constraint_map(puzzle))
     lines.extend(",".join(str(value) for value in row) for row in _col_constraint_map(puzzle))
     return "\n".join(lines) + "\n"
-
-
-def _adjacent_constraint_allows(puzzle: Puzzle, grid: np.ndarray, row: int, col: int, value: int) -> bool:
-    left_constraint = puzzle.get_h_constraint(row, col - 1) if col > 0 else None
-    if left_constraint is not None and grid[row, col - 1] != 0:
-        left_value = int(grid[row, col - 1])
-        if left_constraint.direction == "<" and not (left_value < value):
-            return False
-        if left_constraint.direction == ">" and not (left_value > value):
-            return False
-
-    right_constraint = puzzle.get_h_constraint(row, col) if col < puzzle.N - 1 else None
-    if right_constraint is not None and grid[row, col + 1] != 0:
-        right_value = int(grid[row, col + 1])
-        if right_constraint.direction == "<" and not (value < right_value):
-            return False
-        if right_constraint.direction == ">" and not (value > right_value):
-            return False
-
-    top_constraint = puzzle.get_v_constraint(row - 1, col) if row > 0 else None
-    if top_constraint is not None and grid[row - 1, col] != 0:
-        top_value = int(grid[row - 1, col])
-        if top_constraint.direction == "<" and not (top_value < value):
-            return False
-        if top_constraint.direction == ">" and not (top_value > value):
-            return False
-
-    bottom_constraint = puzzle.get_v_constraint(row, col) if row < puzzle.N - 1 else None
-    if bottom_constraint is not None and grid[row + 1, col] != 0:
-        bottom_value = int(grid[row + 1, col])
-        if bottom_constraint.direction == "<" and not (value < bottom_value):
-            return False
-        if bottom_constraint.direction == ">" and not (value > bottom_value):
-            return False
-
-    return True
 
 
 def _initial_validation(puzzle: Puzzle) -> None:
@@ -131,76 +99,77 @@ def _initial_validation(puzzle: Puzzle) -> None:
                 raise ValueError(f"vertical constraint violated at {constraint.cell1}")
 
 
+def _build_z3_model(puzzle: Puzzle) -> tuple[Solver, list[list]]:
+    size = puzzle.N
+    solver = Solver()
+    cells = [[Int(f"cell_{row}_{col}") for col in range(size)] for row in range(size)]
+
+    for row in range(size):
+        for col in range(size):
+            solver.add(cells[row][col] >= 1)
+            solver.add(cells[row][col] <= size)
+
+    for row in range(size):
+        solver.add(Distinct(cells[row]))
+
+    for col in range(size):
+        solver.add(Distinct([cells[row][col] for row in range(size)]))
+
+    for row, col, value in puzzle.get_given_cells():
+        solver.add(cells[row][col] == int(value))
+
+    for constraint in puzzle.h_constraints:
+        r1, c1 = constraint.cell1
+        r2, c2 = constraint.cell2
+        if constraint.direction == "<":
+            solver.add(cells[r1][c1] < cells[r2][c2])
+        else:
+            solver.add(cells[r1][c1] > cells[r2][c2])
+
+    for constraint in puzzle.v_constraints:
+        r1, c1 = constraint.cell1
+        r2, c2 = constraint.cell2
+        if constraint.direction == "<":
+            solver.add(cells[r1][c1] < cells[r2][c2])
+        else:
+            solver.add(cells[r1][c1] > cells[r2][c2])
+
+    return solver, cells
+
+
+def _extract_solution_grid(cells: list[list], model, size: int) -> np.ndarray:
+    grid = np.zeros((size, size), dtype=int)
+    for row in range(size):
+        for col in range(size):
+            grid[row, col] = model.evaluate(cells[row][col], model_completion=True).as_long()
+    return grid
+
+
 def solve_puzzle(puzzle: Puzzle, limit: int = 2) -> list[np.ndarray]:
+    if limit <= 0:
+        return []
+
     _initial_validation(puzzle)
 
-    grid = puzzle.grid.copy()
+    solver, cells = _build_z3_model(puzzle)
     size = puzzle.N
-    row_used = [set(int(value) for value in grid[row, :] if int(value) != 0) for row in range(size)]
-    col_used = [set(int(value) for value in grid[:, col] if int(value) != 0) for col in range(size)]
-
     solutions: list[np.ndarray] = []
 
-    def candidates(row: int, col: int) -> list[int]:
-        values: list[int] = []
-        for value in range(1, size + 1):
-            if value in row_used[row] or value in col_used[col]:
-                continue
-            if _adjacent_constraint_allows(puzzle, grid, row, col, value):
-                values.append(value)
-        return values
+    while len(solutions) < limit and solver.check() == sat:
+        model = solver.model()
+        solution = _extract_solution_grid(cells, model, size)
+        solutions.append(solution)
 
-    def choose_cell() -> tuple[int, int, list[int]] | None:
-        best_row = -1
-        best_col = -1
-        best_candidates: list[int] | None = None
+        solver.add(
+            Or(
+                [
+                    cells[row][col] != int(solution[row, col])
+                    for row in range(size)
+                    for col in range(size)
+                ]
+            )
+        )
 
-        for row in range(size):
-            for col in range(size):
-                if int(grid[row, col]) != 0:
-                    continue
-                current_candidates = candidates(row, col)
-                if not current_candidates:
-                    return (row, col, [])
-                if best_candidates is None or len(current_candidates) < len(best_candidates):
-                    best_row = row
-                    best_col = col
-                    best_candidates = current_candidates
-                    if len(best_candidates) == 1:
-                        return best_row, best_col, best_candidates
-
-        if best_candidates is None:
-            return None
-        return best_row, best_col, best_candidates
-
-    def search() -> None:
-        if len(solutions) >= limit:
-            return
-
-        chosen = choose_cell()
-        if chosen is None:
-            solutions.append(grid.copy())
-            return
-
-        row, col, current_candidates = chosen
-        if not current_candidates:
-            return
-
-        for value in current_candidates:
-            grid[row, col] = value
-            row_used[row].add(value)
-            col_used[col].add(value)
-
-            search()
-
-            row_used[row].remove(value)
-            col_used[col].remove(value)
-            grid[row, col] = 0
-
-            if len(solutions) >= limit:
-                return
-
-    search()
     return solutions
 
 
@@ -242,9 +211,31 @@ def iter_txt_files(path: Path) -> Iterable[Path]:
 
 
 def validate_path(path: Path, expected_dir: Path | None = None) -> list[ValidationResult]:
+    files = list(iter_txt_files(path))
+    if not files:
+        return []
+
+    started_at = time.perf_counter()
+    print(
+        f"Validating {len(files)} benchmark file(s) under {path}"
+        + (f" against expected solutions in {expected_dir}" if expected_dir is not None else "")
+    )
+
     results: list[ValidationResult] = []
-    for file_path in iter_txt_files(path):
-        results.append(validate_file(file_path, expected_dir=expected_dir))
+    for index, file_path in enumerate(files, start=1):
+        file_started_at = time.perf_counter()
+        result = validate_file(file_path, expected_dir=expected_dir)
+        results.append(result)
+
+        status = "OK" if result.ok else "FAIL"
+        print(
+            f"{_progress_bar(index, len(files))} "
+            f"{index}/{len(files)} {file_path.name} -> {status} "
+            f"({result.message}, {(time.perf_counter() - file_started_at) * 1000:.2f}ms)"
+        )
+
+    total_elapsed_ms = (time.perf_counter() - started_at) * 1000
+    print(f"Validation runtime: {total_elapsed_ms:.2f}ms")
     return results
 
 
@@ -264,14 +255,11 @@ def main(argv: list[str] | None = None) -> int:
         print(f"No .txt files found under {args.path}")
         return 1
 
-    failures = 0
-    for result in results:
-        status = "OK" if result.ok else "FAIL"
-        print(f"[{status}] {result.path} - {result.message}")
-        if not result.ok:
-            failures += 1
-
-    print(f"Validated {len(results)} file(s); {failures} failure(s)")
+    failures = sum(1 for result in results if not result.ok)
+    successes = len(results) - failures
+    print(
+        f"Validation complete: passed={successes}, failed={failures}, total={len(results)}"
+    )
     return 0 if failures == 0 else 1
 
 

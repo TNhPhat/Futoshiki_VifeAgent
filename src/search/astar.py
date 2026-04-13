@@ -12,7 +12,7 @@ Implements best-first graph search with:
 from __future__ import annotations
 
 import heapq
-from typing import Optional
+from typing import Callable, Optional
 
 import numpy as np
 
@@ -49,7 +49,11 @@ class AStarEngine:
     # Public API
     # ------------------------------------------------------------------
 
-    def solve(self, puzzle: Puzzle) -> Optional[SearchState]:
+    def solve(
+        self,
+        puzzle: Puzzle,
+        on_step: Callable[[np.ndarray], None] | None = None,
+    ) -> Optional[SearchState]:
         """
         Run A* search on the given puzzle.
 
@@ -57,6 +61,11 @@ class AStarEngine:
         ----------
         puzzle : Puzzle
             The Futoshiki puzzle to solve.
+        on_step : callable, optional
+            Called with a copy of the current grid after each node expansion.
+            Signature: ``on_step(grid: np.ndarray) -> None``.
+            Raising ``StopIteration`` inside the callback aborts the search
+            cleanly (returns None).
 
         Returns
         -------
@@ -86,6 +95,13 @@ class AStarEngine:
             closed.add(state_hash)
 
             self.node_expansions += 1
+
+            # Emit step to visualisation callback
+            if on_step is not None:
+                try:
+                    on_step(current.grid.copy())
+                except StopIteration:
+                    return None  # caller requested early termination
 
             # Goal check: complete grid with zero violations
             if current.is_complete and current.g == 0:
