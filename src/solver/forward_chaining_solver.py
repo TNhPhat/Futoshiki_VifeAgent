@@ -19,10 +19,10 @@ class ForwardChaining(BaseSolver):
         self._t0: float = 0.0
         self._stats: Stats = Stats(0, 0, 0, 0, 0)
 
-    def solve(self, puzzle: Puzzle) -> tuple[Puzzle | None, Stats]:
+    def solve(self, puzzle: Puzzle, on_step=None) -> tuple[Puzzle | None, Stats]:
         self._start_trace()
 
-        all_facts, total_inference = self._derive_facts(puzzle)
+        all_facts, total_inference = self._derive_facts(puzzle, on_step=on_step)
 
         solution = self._build_solution(puzzle, all_facts)
         self._end_trace()
@@ -31,7 +31,7 @@ class ForwardChaining(BaseSolver):
         return solution, self._stats
 
     @staticmethod
-    def _derive_facts(puzzle: Puzzle) -> tuple[set[Literal], int]:
+    def _derive_facts(puzzle: Puzzle, on_step=None) -> tuple[set[Literal], int]:
         kb = HornClauseGenerator2.generate(puzzle)
         clauses = kb.get_clauses()
         initial_facts = [clause.head for clause in clauses if clause.is_fact()]
@@ -59,6 +59,11 @@ class ForwardChaining(BaseSolver):
             if not new_vals:
                 break
             all_facts.update(new_vals)
+
+            # Emit intermediate grid state after each inference round.
+            if on_step is not None:
+                partial = ForwardChaining._build_solution(puzzle, all_facts)
+                on_step(partial.grid.copy())
 
         return all_facts, total_inference
 

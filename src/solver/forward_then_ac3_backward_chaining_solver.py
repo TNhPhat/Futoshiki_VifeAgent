@@ -17,10 +17,10 @@ class ForwardThenAC3BackwardChaining(BaseSolver):
         self._forward = ForwardChaining()
         self._ac3_backward = AC3BackwardChaining()
 
-    def solve(self, puzzle: Puzzle) -> tuple[Puzzle | None, Stats]:
+    def solve(self, puzzle: Puzzle, on_step=None) -> tuple[Puzzle | None, Stats]:
         initial_unsolved_mask = puzzle.grid == 0
 
-        fc_solution, fc_stats = self._forward.solve(puzzle.copy())
+        fc_solution, fc_stats = self._forward.solve(puzzle.copy(), on_step=on_step)
         ac3_stats = Stats(0, 0, 0, 0, 0)
 
         final_solution = fc_solution
@@ -29,6 +29,14 @@ class ForwardThenAC3BackwardChaining(BaseSolver):
             ac3_solution, ac3_stats = self._ac3_backward.solve(ac3_input)
             if ac3_solution is not None:
                 final_solution = ac3_solution
+                # Replay the BC phase: reveal each newly-filled cell one by one.
+                if on_step is not None:
+                    base = ac3_input.grid.copy()
+                    for r in range(puzzle.N):
+                        for c in range(puzzle.N):
+                            if ac3_solution.grid[r, c] != 0 and base[r, c] == 0:
+                                base[r, c] = ac3_solution.grid[r, c]
+                                on_step(base.copy())
             elif fc_solution is None:
                 final_solution = None
 
