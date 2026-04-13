@@ -437,5 +437,5 @@ class HornClauseGenerator:
                 return None
             domains[(r, c)] = domain
 
-        domains = HornClauseGenerator.relative_size_domains(puzzle, empty_cells=empty_cells)
+        domains = HornClauseGenerator.hidden_single_domains(puzzle, empty_cells=empty_cells)
         return AC3Propagator.propagate(domains, puzzle)
