@@ -1,0 +1,51 @@
+\documentclass{article}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{geometry}
+\geometry{margin=2cm, landscape}
+
+\begin{document}
+
+\begin{longtable}{@{}lccl r r r c@{}}
+  \caption{Benchmark results — Forward Chaining (Data-Driven Fix-point)} \label{tab:forward_chaining__data_driven_fix_point} \\
+  \toprule
+  \textbf{Test Case} & \textbf{Size} & \textbf{Difficulty} & \textbf{Algorithm} & \textbf{Time (s)} & \textbf{Memory (KB)} & \textbf{Exp./Inf.} & \textbf{Completion} \\
+  \midrule
+  \endfirsthead
+  \multicolumn{8}{c}{\tablename\ \thetable{} -- continued} \\
+  \toprule
+  \textbf{Test Case} & \textbf{Size} & \textbf{Difficulty} & \textbf{Algorithm} & \textbf{Time (s)} & \textbf{Memory (KB)} & \textbf{Exp./Inf.} & \textbf{Completion} \\
+  \midrule
+  \endhead
+  \midrule
+  \multicolumn{8}{r}{\textit{Continued on next page}} \\
+  \endfoot
+  \bottomrule
+  \endlastfoot
+  \texttt{puzzle\_01\_4x4\_easy} & $4\times4$ & Easy & Forward Chaining (Data-Driven Fix-point) & 0.0590 & 211.79 & 1\,243 & 1.00 \\
+  \texttt{puzzle\_02\_4x4\_medium} & $4\times4$ & Medium & Forward Chaining (Data-Driven Fix-point) & 0.0557 & 178.26 & 1\,163 & 1.00 \\
+  \texttt{puzzle\_03\_4x4\_medium} & $4\times4$ & Medium & Forward Chaining (Data-Driven Fix-point) & 0.0678 & 96.56 & 1\,460 & 1.00 \\
+  \texttt{puzzle\_04\_4x4\_hard} & $4\times4$ & Hard & Forward Chaining (Data-Driven Fix-point) & 0.0422 & 68.02 & 943 & 1.00 \\
+  \texttt{puzzle\_05\_5x5\_easy} & $5\times5$ & Easy & Forward Chaining (Data-Driven Fix-point) & 0.1648 & 146.14 & 2\,975 & 1.00 \\
+  \texttt{puzzle\_06\_5x5\_medium} & $5\times5$ & Medium & Forward Chaining (Data-Driven Fix-point) & 0.1138 & 129.94 & 2\,033 & 1.00 \\
+  \texttt{puzzle\_07\_5x5\_medium} & $5\times5$ & Medium & Forward Chaining (Data-Driven Fix-point) & 0.1585 & 147.47 & 2\,789 & 1.00 \\
+  \texttt{puzzle\_08\_5x5\_hard} & $5\times5$ & Hard & Forward Chaining (Data-Driven Fix-point) & 0.1577 & 122.77 & 2\,947 & 1.00 \\
+  \texttt{puzzle\_09\_6x6\_easy} & $6\times6$ & Easy & Forward Chaining (Data-Driven Fix-point) & 0.2557 & 278.01 & 3\,685 & 1.00 \\
+  \texttt{puzzle\_10\_6x6\_medium} & $6\times6$ & Medium & Forward Chaining (Data-Driven Fix-point) & 0.2995 & 256.05 & 4\,390 & 1.00 \\
+  \texttt{puzzle\_11\_6x6\_medium} & $6\times6$ & Medium & Forward Chaining (Data-Driven Fix-point) & 0.3658 & 264.91 & 5\,321 & 1.00 \\
+  \texttt{puzzle\_12\_6x6\_hard} & $6\times6$ & Hard & Forward Chaining (Data-Driven Fix-point) & 0.2657 & 147.51 & 4\,417 & 0.29 \\
+  \texttt{puzzle\_13\_7x7\_easy} & $7\times7$ & Easy & Forward Chaining (Data-Driven Fix-point) & 0.8589 & 345.05 & 10\,762 & 1.00 \\
+  \texttt{puzzle\_14\_7x7\_medium} & $7\times7$ & Medium & Forward Chaining (Data-Driven Fix-point) & 1.1550 & 321.55 & 15\,321 & 1.00 \\
+  \texttt{puzzle\_15\_7x7\_medium} & $7\times7$ & Medium & Forward Chaining (Data-Driven Fix-point) & 0.3361 & 288.14 & 4\,526 & 0.29 \\
+  \texttt{puzzle\_16\_7x7\_hard} & $7\times7$ & Hard & Forward Chaining (Data-Driven Fix-point) & 0.1199 & 198.71 & 1\,874 & 0.05 \\
+  \texttt{puzzle\_17\_8x8\_easy} & $8\times8$ & Easy & Forward Chaining (Data-Driven Fix-point) & 0.9695 & 465.96 & 10\,449 & 1.00 \\
+  \texttt{puzzle\_18\_8x8\_medium} & $8\times8$ & Medium & Forward Chaining (Data-Driven Fix-point) & 1.0079 & 439.25 & 11\,279 & 0.52 \\
+  \texttt{puzzle\_19\_8x8\_medium} & $8\times8$ & Medium & Forward Chaining (Data-Driven Fix-point) & 0.6750 & 379.58 & 7\,866 & 0.27 \\
+  \texttt{puzzle\_20\_8x8\_hard} & $8\times8$ & Hard & Forward Chaining (Data-Driven Fix-point) & 0.5323 & 317.38 & 6\,867 & 0.12 \\
+  \texttt{puzzle\_21\_9x9\_easy} & $9\times9$ & Easy & Forward Chaining (Data-Driven Fix-point) & 2.1085 & 603.54 & 19\,397 & 1.00 \\
+  \texttt{puzzle\_22\_9x9\_medium} & $9\times9$ & Medium & Forward Chaining (Data-Driven Fix-point) & 0.8898 & 507.49 & 8\,843 & 0.15 \\
+  \texttt{puzzle\_23\_9x9\_medium} & $9\times9$ & Medium & Forward Chaining (Data-Driven Fix-point) & 2.3692 & 505.07 & 23\,579 & 0.39 \\
+  \texttt{puzzle\_24\_9x9\_hard} & $9\times9$ & Hard & Forward Chaining (Data-Driven Fix-point) & 0.5369 & 426.40 & 5\,941 & 0.10 \\
+\end{longtable}
+
+\end{document}

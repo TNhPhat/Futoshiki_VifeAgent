@@ -4,7 +4,7 @@ Tests for A* Search Solver (AStarSolver) and engine components.
 Tests:
   1. SearchState — ordering, completeness, copy, hashing
   2. AStarEngine — domain initialisation, violation counting, MRV
-  3. AStarSolver — end-to-end solving on 2×2, 3×3, 4×4 puzzles
+  3. AStarSolver — end-to-end solving on 2x2, 3x3, 4x4 puzzles
   4. Solution properties — row/col uniqueness, constraint satisfaction
   5. Unsolvable puzzles — contradiction detection
   6. Stats — node expansions, timing
@@ -195,7 +195,7 @@ class TestAStarEngineInternals:
 
 
 class TestAStarSolver2x2:
-    """2×2 puzzles — fast, covers basic correctness."""
+    """2x2 puzzles — fast, covers basic correctness."""
 
     def test_solve_with_h1(self):
         puzzle = make_puzzle(2, [[1, 0], [0, 0]], h=[(0, 0, "<")])
@@ -220,7 +220,7 @@ class TestAStarSolver2x2:
         assert _check_solution(puzzle, solution)
 
     def test_known_solution(self):
-        """2×2 with given (0,0)=1 and (0,0)<(0,1) → [[1,2],[2,1]]."""
+        """2x2 with given (0,0)=1 and (0,0)<(0,1) → [[1,2],[2,1]]."""
         puzzle = make_puzzle(2, [[1, 0], [0, 0]], h=[(0, 0, "<")])
         solver = AStarSolver()
         solution, _ = solver.solve(puzzle)
@@ -237,7 +237,7 @@ class TestAStarSolver2x2:
 
 
 class TestAStarSolver3x3:
-    """3×3 puzzles — moderate complexity."""
+    """3x3 puzzles — moderate complexity."""
 
     def test_solve_no_constraints(self):
         puzzle = make_puzzle(3, [
@@ -275,7 +275,7 @@ class TestAStarSolver3x3:
 
 
 class TestAStarSolver4x4:
-    """4×4 puzzle to test scalability."""
+    """4x4 puzzle to test scalability."""
 
     def test_solve_with_givens(self):
         puzzle = make_puzzle(4, [

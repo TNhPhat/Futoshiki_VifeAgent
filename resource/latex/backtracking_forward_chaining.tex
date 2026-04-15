@@ -1,0 +1,51 @@
+\documentclass{article}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{geometry}
+\geometry{margin=2cm, landscape}
+
+\begin{document}
+
+\begin{longtable}{@{}lccl r r r c@{}}
+  \caption{Benchmark results — Backtracking + Forward Chaining} \label{tab:backtracking___forward_chaining} \\
+  \toprule
+  \textbf{Test Case} & \textbf{Size} & \textbf{Difficulty} & \textbf{Algorithm} & \textbf{Time (s)} & \textbf{Memory (KB)} & \textbf{Exp./Inf.} & \textbf{Completion} \\
+  \midrule
+  \endfirsthead
+  \multicolumn{8}{c}{\tablename\ \thetable{} -- continued} \\
+  \toprule
+  \textbf{Test Case} & \textbf{Size} & \textbf{Difficulty} & \textbf{Algorithm} & \textbf{Time (s)} & \textbf{Memory (KB)} & \textbf{Exp./Inf.} & \textbf{Completion} \\
+  \midrule
+  \endhead
+  \midrule
+  \multicolumn{8}{r}{\textit{Continued on next page}} \\
+  \endfoot
+  \bottomrule
+  \endlastfoot
+  \texttt{puzzle\_01\_4x4\_easy} & $4\times4$ & Easy & Backtracking + Forward Chaining & 0.0422 & 89.50 & 1\,243 & 1.00 \\
+  \texttt{puzzle\_02\_4x4\_medium} & $4\times4$ & Medium & Backtracking + Forward Chaining & 0.0401 & 97.41 & 1\,163 & 1.00 \\
+  \texttt{puzzle\_03\_4x4\_medium} & $4\times4$ & Medium & Backtracking + Forward Chaining & 0.0491 & 88.41 & 1\,460 & 1.00 \\
+  \texttt{puzzle\_04\_4x4\_hard} & $4\times4$ & Hard & Backtracking + Forward Chaining & 0.0296 & 69.66 & 943 & 1.00 \\
+  \texttt{puzzle\_05\_5x5\_easy} & $5\times5$ & Easy & Backtracking + Forward Chaining & 0.1187 & 149.19 & 2\,975 & 1.00 \\
+  \texttt{puzzle\_06\_5x5\_medium} & $5\times5$ & Medium & Backtracking + Forward Chaining & 0.0774 & 132.73 & 2\,033 & 1.00 \\
+  \texttt{puzzle\_07\_5x5\_medium} & $5\times5$ & Medium & Backtracking + Forward Chaining & 0.1095 & 150.63 & 2\,789 & 1.00 \\
+  \texttt{puzzle\_08\_5x5\_hard} & $5\times5$ & Hard & Backtracking + Forward Chaining & 0.1085 & 125.55 & 2\,947 & 1.00 \\
+  \texttt{puzzle\_09\_6x6\_easy} & $6\times6$ & Easy & Backtracking + Forward Chaining & 0.1818 & 282.57 & 3\,685 & 1.00 \\
+  \texttt{puzzle\_10\_6x6\_medium} & $6\times6$ & Medium & Backtracking + Forward Chaining & 0.2089 & 260.48 & 4\,390 & 1.00 \\
+  \texttt{puzzle\_11\_6x6\_medium} & $6\times6$ & Medium & Backtracking + Forward Chaining & 0.2689 & 269.42 & 5\,321 & 1.00 \\
+  \texttt{puzzle\_12\_6x6\_hard} & $6\times6$ & Hard & Backtracking + Forward Chaining & 1.1020 & 530.16 & 24\,124 & 1.00 \\
+  \texttt{puzzle\_13\_7x7\_easy} & $7\times7$ & Easy & Backtracking + Forward Chaining & 0.5925 & 350.63 & 10\,762 & 1.00 \\
+  \texttt{puzzle\_14\_7x7\_medium} & $7\times7$ & Medium & Backtracking + Forward Chaining & 0.7977 & 327.02 & 15\,321 & 1.00 \\
+  \texttt{puzzle\_15\_7x7\_medium} & $7\times7$ & Medium & Backtracking + Forward Chaining & 11.9650 & 1023.05 & 213\,348 & 1.00 \\
+  \texttt{puzzle\_16\_7x7\_hard} & $7\times7$ & Hard & Backtracking + Forward Chaining & 4.4033 & 1583.69 & 85\,658 & 1.00 \\
+  \texttt{puzzle\_17\_8x8\_easy} & $8\times8$ & Easy & Backtracking + Forward Chaining & 0.6684 & 473.80 & 10\,449 & 1.00 \\
+  \texttt{puzzle\_18\_8x8\_medium} & $8\times8$ & Medium & Backtracking + Forward Chaining & 11.7696 & 1360.52 & 175\,997 & 1.00 \\
+  \texttt{puzzle\_19\_8x8\_medium} & $8\times8$ & Medium & Backtracking + Forward Chaining & 17.3322 & 2452.10 & 256\,064 & 1.00 \\
+  \texttt{puzzle\_20\_8x8\_hard} & $8\times8$ & Hard & Backtracking + Forward Chaining & 85.5268 & 2419.07 & 1\,381\,079 & 1.00 \\
+  \texttt{puzzle\_21\_9x9\_easy} & $9\times9$ & Easy & Backtracking + Forward Chaining & 1.4932 & 612.91 & 19\,397 & 1.00 \\
+  \texttt{puzzle\_22\_9x9\_medium} & $9\times9$ & Medium & Backtracking + Forward Chaining & 57.1083 & 3566.84 & 743\,695 & 1.00 \\
+  \texttt{puzzle\_23\_9x9\_medium} & $9\times9$ & Medium & Backtracking + Forward Chaining & 8.8114 & 2307.33 & 122\,821 & 1.00 \\
+  \texttt{puzzle\_24\_9x9\_hard} & $9\times9$ & Hard & Backtracking + Forward Chaining & 452.9800 & 4734.27 & 5\,215\,713 & 1.00 \\
+\end{longtable}
+
+\end{document}

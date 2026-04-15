@@ -1,0 +1,51 @@
+\documentclass{article}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{geometry}
+\geometry{margin=2cm, landscape}
+
+\begin{document}
+
+\begin{longtable}{@{}lccl r r r c@{}}
+  \caption{Benchmark results — Backward Chaining (Generate-and-Test SLD)} \label{tab:backward_chaining__generate_and_test_sld} \\
+  \toprule
+  \textbf{Test Case} & \textbf{Size} & \textbf{Difficulty} & \textbf{Algorithm} & \textbf{Time (s)} & \textbf{Memory (KB)} & \textbf{Exp./Inf.} & \textbf{Completion} \\
+  \midrule
+  \endfirsthead
+  \multicolumn{8}{c}{\tablename\ \thetable{} -- continued} \\
+  \toprule
+  \textbf{Test Case} & \textbf{Size} & \textbf{Difficulty} & \textbf{Algorithm} & \textbf{Time (s)} & \textbf{Memory (KB)} & \textbf{Exp./Inf.} & \textbf{Completion} \\
+  \midrule
+  \endhead
+  \midrule
+  \multicolumn{8}{r}{\textit{Continued on next page}} \\
+  \endfoot
+  \bottomrule
+  \endlastfoot
+  \texttt{puzzle\_01\_4x4\_easy} & $4\times4$ & Easy & Backward Chaining (Generate-and-Test SLD) & 0.0110 & 147.66 & 53 & 1.00 \\
+  \texttt{puzzle\_02\_4x4\_medium} & $4\times4$ & Medium & Backward Chaining (Generate-and-Test SLD) & 0.0140 & 168.67 & 67 & 1.00 \\
+  \texttt{puzzle\_03\_4x4\_medium} & $4\times4$ & Medium & Backward Chaining (Generate-and-Test SLD) & 0.0125 & 176.62 & 69 & 1.00 \\
+  \texttt{puzzle\_04\_4x4\_hard} & $4\times4$ & Hard & Backward Chaining (Generate-and-Test SLD) & 0.0128 & 169.07 & 64 & 1.00 \\
+  \texttt{puzzle\_05\_5x5\_easy} & $5\times5$ & Easy & Backward Chaining (Generate-and-Test SLD) & 0.0344 & 313.04 & 106 & 1.00 \\
+  \texttt{puzzle\_06\_5x5\_medium} & $5\times5$ & Medium & Backward Chaining (Generate-and-Test SLD) & 0.0394 & 377.34 & 123 & 1.00 \\
+  \texttt{puzzle\_07\_5x5\_medium} & $5\times5$ & Medium & Backward Chaining (Generate-and-Test SLD) & 0.0372 & 416.75 & 131 & 1.00 \\
+  \texttt{puzzle\_08\_5x5\_hard} & $5\times5$ & Hard & Backward Chaining (Generate-and-Test SLD) & 0.0411 & 410.99 & 128 & 1.00 \\
+  \texttt{puzzle\_09\_6x6\_easy} & $6\times6$ & Easy & Backward Chaining (Generate-and-Test SLD) & 0.0934 & 644.83 & 180 & 1.00 \\
+  \texttt{puzzle\_10\_6x6\_medium} & $6\times6$ & Medium & Backward Chaining (Generate-and-Test SLD) & 0.1186 & 850.82 & 211 & 1.00 \\
+  \texttt{puzzle\_11\_6x6\_medium} & $6\times6$ & Medium & Backward Chaining (Generate-and-Test SLD) & 0.1294 & 930.84 & 220 & 1.00 \\
+  \texttt{puzzle\_12\_6x6\_hard} & $6\times6$ & Hard & Backward Chaining (Generate-and-Test SLD) & 0.1335 & 942.38 & 217 & 1.00 \\
+  \texttt{puzzle\_13\_7x7\_easy} & $7\times7$ & Easy & Backward Chaining (Generate-and-Test SLD) & 0.2440 & 1335.78 & 285 & 1.00 \\
+  \texttt{puzzle\_14\_7x7\_medium} & $7\times7$ & Medium & Backward Chaining (Generate-and-Test SLD) & 0.3254 & 1686.96 & 320 & 1.00 \\
+  \texttt{puzzle\_15\_7x7\_medium} & $7\times7$ & Medium & Backward Chaining (Generate-and-Test SLD) & 0.3352 & 1817.63 & 335 & 1.00 \\
+  \texttt{puzzle\_16\_7x7\_hard} & $7\times7$ & Hard & Backward Chaining (Generate-and-Test SLD) & 0.3676 & 1901.73 & 342 & 1.00 \\
+  \texttt{puzzle\_17\_8x8\_easy} & $8\times8$ & Easy & Backward Chaining (Generate-and-Test SLD) & 0.7808 & 2584.83 & 427 & 1.00 \\
+  \texttt{puzzle\_18\_8x8\_medium} & $8\times8$ & Medium & Backward Chaining (Generate-and-Test SLD) & 0.8067 & 3414.29 & 500 & 1.00 \\
+  \texttt{puzzle\_19\_8x8\_medium} & $8\times8$ & Medium & Backward Chaining (Generate-and-Test SLD) & 0.8252 & 3574.64 & 503 & 1.00 \\
+  \texttt{puzzle\_20\_8x8\_hard} & $8\times8$ & Hard & Backward Chaining (Generate-and-Test SLD) & 1188.7788 & 4002.76 & 426\,824 & 1.00 \\
+  \texttt{puzzle\_21\_9x9\_easy} & $9\times9$ & Easy & Backward Chaining (Generate-and-Test SLD) & 1.4749 & 4588.02 & 603 & 1.00 \\
+  \texttt{puzzle\_22\_9x9\_medium} & $9\times9$ & Medium & Backward Chaining (Generate-and-Test SLD) & 2.4078 & 6031.21 & 675 & 1.00 \\
+  \texttt{puzzle\_23\_9x9\_medium} & $9\times9$ & Medium & Backward Chaining (Generate-and-Test SLD) & 37.3518 & 6734.86 & 7\,725 & 1.00 \\
+  \texttt{puzzle\_24\_9x9\_hard} & $9\times9$ & Hard & Backward Chaining (Generate-and-Test SLD) & 24965.0142 & 7329.70 & 3\,450\,900 & 1.00 \\
+\end{longtable}
+
+\end{document}

@@ -22,7 +22,7 @@ from constraints.inequality_constraint import InequalityConstraint
 
 
 def make_empty_puzzle(N: int) -> Puzzle:
-    """Create an N×N puzzle with no givens and no constraints."""
+    """Create an NxN puzzle with no givens and no constraints."""
     return Puzzle(
         N=N,
         grid=np.zeros((N, N), dtype=int),
@@ -33,7 +33,7 @@ def make_empty_puzzle(N: int) -> Puzzle:
 
 def make_test_puzzle(N: int) -> Puzzle:
     """
-    Create a 4×4 test puzzle with known constraints.
+    Create a 4x4 test puzzle with known constraints.
 
     - Cell (0,0) = 1, Cell (1,1) = 2 (givens)
     - h_constraint (0,0) → LessH:    cell(0,0) < cell(0,1)
@@ -133,7 +133,7 @@ def test_kb_add_clauses_bulk():
 
 def test_generate_empty_puzzle():
     """
-    Test CNFGenerator.generate on an empty 4×4 puzzle.
+    Test CNFGenerator.generate on an empty 4x4 puzzle.
 
     Expected clause count with no givens/constraints:
         A1=16, A2=96, A3=96, A4=96,
@@ -162,7 +162,7 @@ def test_generate_empty_puzzle():
     )
     assert expected == 352, f"Expected formula = {expected}"
     assert len(kb) == expected, (
-        f"Empty 4×4: {len(kb)} clauses != {expected}"
+        f"Empty 4x4: {len(kb)} clauses != {expected}"
     )
 
     # Facts should include Less ground truth (6) + irreflexivity (4)
@@ -192,7 +192,7 @@ def test_generate_test_puzzle():
     #   A7: 1 LessH  constraint → N² = 16 clauses
     #   A8: 1 GreaterH constraint → N² = 16 clauses
     #   A9: 2 givens → 2 unit clauses
-    #   A16: 4 constraints × N(N+1)/2 = 4 × 10 = 40 clauses
+    #   A16: 4 constraints x N(N+1)/2 = 4 x 10 = 40 clauses
     extra = 16 + 16 + 16 + 16 + 2 + 40
     expected = base + extra  # 352 + 106 = 458
     assert len(kb) == expected, (
@@ -264,10 +264,10 @@ if __name__ == "__main__":
     test_kb_repr()
     test_kb_add_clauses_bulk()
 
-    print("\nCNFGenerator — empty 4×4:")
+    print("\nCNFGenerator — empty 4x4:")
     test_generate_empty_puzzle()
 
-    print("\nCNFGenerator — test puzzle 4×4:")
+    print("\nCNFGenerator — test puzzle 4x4:")
     test_generate_test_puzzle()
 
     print("\nAxiom breakdown verification:")

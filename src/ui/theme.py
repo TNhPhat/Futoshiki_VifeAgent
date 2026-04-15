@@ -24,6 +24,8 @@ CLR_CELL_ERROR    = (255, 180, 180)   # conflict / error
 CLR_CELL_SOLVER   = (180, 220, 255)   # cell filled by solver
 CLR_CELL_BACKTRACK= (255, 200, 130)   # backtrack flash (fades out)
 CLR_CELL_SOLVED   = (180, 255, 190)   # final solved state
+CLR_CELL_KB_HL    = (255, 210,  80)   # KB-mode hover highlight (warm amber)
+CLR_KB_CONSTRAINT = (220, 120,   0)   # KB-mode highlighted constraint symbol
 
 # Text
 CLR_TEXT_GIVEN    = (30,  30,  30)    # given-clue numeral (bold)

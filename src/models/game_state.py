@@ -16,6 +16,7 @@ import numpy as np
 
 if TYPE_CHECKING:
     from models.board import Board
+    from fol.kb import CNFClauseKnowledgeBase
 
 
 # ---------------------------------------------------------------------------
@@ -23,7 +24,7 @@ if TYPE_CHECKING:
 # ---------------------------------------------------------------------------
 
 class AppMode(Enum):
-    MENU  = auto()   # puzzle / solver selection (no active game)
+    KB    = auto()   # CNF knowledge-base viewer (replaces old MENU slot)
     PLAY  = auto()   # manual user interaction
     SOLVE = auto()   # step-by-step solver visualization
 
@@ -35,7 +36,7 @@ class AppMode(Enum):
 @dataclass
 class SolveStep:
     """A single snapshot emitted by the solver worker thread."""
-    grid: np.ndarray          # full N×N grid at this step
+    grid: np.ndarray          # full NxN grid at this step
     is_backtrack: bool        # True if fewer filled cells than previous step
     node_count: int           # A* node expansions so far
     elapsed_ms: float         # wall-clock ms since solve started
@@ -55,10 +56,23 @@ class GameState:
     can read / write them directly.
     """
 
-    mode: AppMode = AppMode.MENU
+    mode: AppMode = AppMode.KB
 
     # Active board (set when a puzzle is loaded / generated).
     board: "Board | None" = None
+
+    # CNF knowledge base generated from the active puzzle.
+    cnf_kb: "CNFClauseKnowledgeBase | None" = None
+    # Scroll offset for the facts list in the KB panel.
+    cnf_kb_scroll: int = 0
+    # Fact currently under the mouse (hover highlight).
+    kb_hovered_lit: object = None   # Literal | None
+    # Fact pinned by the last ? click (explanation stays visible).
+    kb_selected_lit: object = None  # Literal | None
+    # When set, the KB reference popup is shown over the grid.
+    kb_show_popup: bool = False
+    # Grid cell (row, col) under the mouse in KB mode — drives the domain tooltip.
+    kb_hovered_cell: object = None  # tuple[int,int] | None
 
     # ------------------------------------------------------------------
     # UI interaction state

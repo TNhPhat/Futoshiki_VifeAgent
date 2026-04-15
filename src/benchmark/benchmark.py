@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Iterable
@@ -57,10 +58,23 @@ def _solver_registry() -> Dict[str, BaseSolver | type[BaseSolver]]:
     }
 
 
-def _iter_input_files(input_dir: Path) -> Iterable[Path]:
+_SIZE_RE = re.compile(r"_(\d+)x\d+")
+
+
+def _puzzle_n_from_filename(name: str) -> int | None:
+    m = _SIZE_RE.search(name)
+    return int(m.group(1)) if m else None
+
+
+def _iter_input_files(input_dir: Path, max_n: int | None = None) -> Iterable[Path]:
     for file_path in sorted(input_dir.glob("*.txt")):
-        if file_path.is_file():
-            yield file_path
+        if not file_path.is_file():
+            continue
+        if max_n is not None:
+            n = _puzzle_n_from_filename(file_path.name)
+            if n is not None and n > max_n:
+                continue
+        yield file_path
 
 
 def _progress_bar(done: int, total: int, width: int = 24) -> str:
@@ -150,7 +164,7 @@ def _evaluate_case(
     )
 
 
-def run_benchmark(solver_key: str, benchmark_root: Path) -> tuple[list[tuple[str, BenchmarkRow]], int]:
+def run_benchmark(solver_key: str, benchmark_root: Path, max_n: int | None = None) -> tuple[list[tuple[str, BenchmarkRow]], int]:
     registry = _solver_registry()
     if solver_key not in registry:
         valid = ", ".join(sorted(registry.keys()))
@@ -170,14 +184,15 @@ def run_benchmark(solver_key: str, benchmark_root: Path) -> tuple[list[tuple[str
     rows: list[tuple[str, BenchmarkRow]] = []
     failed = 0
 
-    input_files = list(_iter_input_files(input_dir))
+    input_files = list(_iter_input_files(input_dir, max_n=max_n))
     if not input_files:
         raise FileNotFoundError(f"no benchmark input files found in: {input_dir}")
 
     total = len(input_files)
+    max_n_label = f", max_n={max_n}" if max_n is not None else ""
     print(
         f"Running benchmark: solver={solver_name} ({solver_key}), "
-        f"cases={total}, root={benchmark_root}"
+        f"cases={total}{max_n_label}, root={benchmark_root}"
     )
 
     for idx, input_path in enumerate(input_files, start=1):
@@ -226,12 +241,20 @@ def main(argv: list[str] | None = None) -> int:
         default=Path(__file__).resolve().parent,
         help="Benchmark directory containing input/ and expected/.",
     )
+    parser.add_argument(
+        "--max-n",
+        type=int,
+        default=None,
+        metavar="N",
+        help="Skip puzzles larger than NxN (e.g. --max-n 6 runs only 4x4..6x6).",
+    )
     args = parser.parse_args(argv)
     if (args.solver == "all"):
         for solver in _solver_registry():
             rows, failed = run_benchmark(
                 solver_key=solver,
                 benchmark_root=args.benchmark_root,
+                max_n=args.max_n,
             )
             solver_name = rows[0][1].solver_name
             csv_path = StatsCsvWriter.write_many(rows, solver_name=solver_name)
@@ -240,6 +263,7 @@ def main(argv: list[str] | None = None) -> int:
         rows, failed = run_benchmark(
             solver_key=args.solver,
             benchmark_root=args.benchmark_root,
+            max_n=args.max_n,
         )
         solver_name = rows[0][1].solver_name
         csv_path = StatsCsvWriter.write_many(rows, solver_name=solver_name)

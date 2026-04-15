@@ -142,7 +142,7 @@ class TestDomainSizeHeuristic:
                 (1, 1): {1, 2},
             },
         )
-        # 4 cells × (2-1) = 4
+        # 4 cells x (2-1) = 4
         assert self.h.estimate(state, puzzle) == 4
 
     def test_mixed_domains(self):

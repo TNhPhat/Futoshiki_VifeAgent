@@ -1,7 +1,7 @@
 """
 Screen layout constants and helpers.
 
-The window is fixed at SCREEN_W × SCREEN_H.
+The window is fixed at SCREEN_W x SCREEN_H.
 A top bar holds the title and mode-tab buttons.
 The left area is the grid panel; the right column is the side panel.
 """
@@ -81,7 +81,7 @@ GRID_PADDING: int = 30
 
 def grid_geometry(N: int) -> tuple[pygame.Rect, int, int]:
     """
-    Compute the grid rect, cell size, and gap size for an N×N puzzle.
+    Compute the grid rect, cell size, and gap size for an NxN puzzle.
 
     Returns
     -------
