@@ -237,9 +237,9 @@ If any domain becomes empty after AC-3 → h₄(n) = ∞ (prune)
 | Heuristic | Formula | Admissible | Informativeness | Computation Cost | Best For |
 |---|---|---|---|---|---|
 | **h₁** | Empty cells | ✅ | ⭐ (weak) | O(N²) | Baseline only |
-| **h₂** | Σ(domain_size - 1) | ✅ | ⭐⭐ | O(N²) | Small puzzles (4×4, 5×5) |
-| **h₃** | Σ min_conflicts | ✅ | ⭐⭐⭐ | O(N² × d) | Medium puzzles (5×5, 6×6) |
-| **h₄** | h₂ after AC-3 | ✅ | ⭐⭐⭐⭐ | O(N² × d³) | Large puzzles (7×7+) |
+| **h₂** | Σ(domain_size - 1) | ✅ | ⭐⭐ | O(N²) | Small puzzles (4x4, 5x5) |
+| **h₃** | Σ min_conflicts | ✅ | ⭐⭐⭐ | O(N² x d) | Medium puzzles (5x5, 6x6) |
+| **h₄** | h₂ after AC-3 | ✅ | ⭐⭐⭐⭐ | O(N² x d³) | Large puzzles (7x7+) |
 
 #### Trade-off Analysis
 
@@ -260,16 +260,16 @@ If any domain becomes empty after AC-3 → h₄(n) = ∞ (prune)
 **Key Insight:** The total solving time is:
 
 ```
-Total Time = (# Expansions) × (Time per Expansion)
+Total Time = (# Expansions) x (Time per Expansion)
 ```
 
-- **Weak heuristic (h₁):** Many expansions × Fast per expansion = Slow for large puzzles
-- **Strong heuristic (h₄):** Few expansions × Slow per expansion = Fast for large puzzles, overkill for small
+- **Weak heuristic (h₁):** Many expansions x Fast per expansion = Slow for large puzzles
+- **Strong heuristic (h₄):** Few expansions x Slow per expansion = Fast for large puzzles, overkill for small
 
 **Recommendation:**
-- **4×4, 5×5:** Use h₂ (fast computation, acceptable expansions)
-- **6×6:** Use h₃ (balanced)
-- **7×7+:** Use h₄ (AC-3 pruning saves exponential branching)
+- **4x4, 5x5:** Use h₂ (fast computation, acceptable expansions)
+- **6x6:** Use h₃ (balanced)
+- **7x7+:** Use h₄ (AC-3 pruning saves exponential branching)
 
 ---
 
@@ -342,8 +342,8 @@ After AC-3:
 
 | Aspect | Value |
 |---|---|
-| **Time** | O(e × d³) where e = edges (arcs), d = max domain size |
-| **For Futoshiki** | O(N² × N³) = O(N⁵) per state (worst case) |
+| **Time** | O(e x d³) where e = edges (arcs), d = max domain size |
+| **For Futoshiki** | O(N² x N³) = O(N⁵) per state (worst case) |
 | **Typical** | Much faster in practice due to early termination |
 
 ### 7.5. AC-3 Integration with A*
@@ -415,7 +415,7 @@ class SearchState:
         return self.f < other.f
 ```
 
-### 8.2. Worked Example — 2×2 Grid
+### 8.2. Worked Example — 2x2 Grid
 
 Given: `cell(0,0) = 1` and constraint `cell(0,0) < cell(0,1)`
 

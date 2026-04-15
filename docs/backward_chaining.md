@@ -260,9 +260,9 @@ flowchart LR
     F --> H["All cells filled\n→ solved grid"]
 ```
 
-### 5.4. Worked Example — 2×2 Grid (Prolog-style SLD with Unifier)
+### 5.4. Worked Example — 2x2 Grid (Prolog-style SLD with Unifier)
 
-2×2 Futoshiki: `Given(0,0,1)` and constraint `cell(0,0) < cell(0,1)`.
+2x2 Futoshiki: `Given(0,0,1)` and constraint `cell(0,0) < cell(0,1)`.
 
 **Horn Clause KB (relevant subset, all using `Literal` objects):**
 ```prolog

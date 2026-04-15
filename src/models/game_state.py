@@ -35,7 +35,7 @@ class AppMode(Enum):
 @dataclass
 class SolveStep:
     """A single snapshot emitted by the solver worker thread."""
-    grid: np.ndarray          # full N×N grid at this step
+    grid: np.ndarray          # full NxN grid at this step
     is_backtrack: bool        # True if fewer filled cells than previous step
     node_count: int           # A* node expansions so far
     elapsed_ms: float         # wall-clock ms since solve started

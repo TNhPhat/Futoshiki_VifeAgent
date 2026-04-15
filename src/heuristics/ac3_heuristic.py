@@ -30,10 +30,10 @@ class AC3Heuristic(BaseHeuristic):
     h₄(n) = Σ (|domain'(i,j)| − 1) for all unassigned cells,
     where domain' = domains after AC-3 propagation.
 
-    If any domain becomes empty after AC-3 → returns N × N × N
+    If any domain becomes empty after AC-3 → returns N x N x N
     (large penalty signalling a dead-end state).
 
-    Complexity: O(e × d³) per call, where e = arcs, d = max domain.
+    Complexity: O(e x d³) per call, where e = arcs, d = max domain.
     """
 
     def estimate(self, state: SearchState, puzzle: Puzzle) -> int:

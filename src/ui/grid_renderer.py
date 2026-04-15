@@ -1,5 +1,5 @@
 """
-Grid renderer: draws the N×N cell grid with values, notes, and highlights.
+Grid renderer: draws the NxN cell grid with values, notes, and highlights.
 """
 from __future__ import annotations
 

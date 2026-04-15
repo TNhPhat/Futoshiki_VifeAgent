@@ -67,7 +67,7 @@ class Axioms:
         Returns
         -------
         list of Clause
-            N² × C(N,2) clauses, each a binary clause.
+            N² x C(N,2) clauses, each a binary clause.
         """
         clauses: list[Clause] = []
         for i in range(N):
@@ -96,7 +96,7 @@ class Axioms:
         Returns
         -------
         list of Clause
-            N × C(N,2) × N clauses.
+            N x C(N,2) x N clauses.
         """
         clauses: list[Clause] = []
         for i in range(N):
@@ -123,7 +123,7 @@ class Axioms:
         Returns
         -------
         list of Clause
-            N × C(N,2) × N clauses.
+            N x C(N,2) x N clauses.
         """
         clauses: list[Clause] = []
         for j in range(N):

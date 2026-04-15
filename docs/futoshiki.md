@@ -61,20 +61,20 @@
 | **A14** | Less Irreflexivity (NEW) | ∀v ¬Less(v,v) | No number is less than itself | Unit clause: `¬Less(v,v)` for each v |
 | **A15** | Less Asymmetry (NEW) | ∀v₁,v₂ Less(v₁,v₂) ⇒ ¬Less(v₂,v₁) | If a < b then b cannot be < a | `¬Less(v₁,v₂) ∨ ¬Less(v₂,v₁)` for all v₁ ≠ v₂ |
 
-### Clause Count Estimate (for N×N grid)
+### Clause Count Estimate (for NxN grid)
 
 | Axiom | # Clauses | Example (N=4) |
 |---|---|---|
 | A1 (existence) | N² | 16 |
-| A2 (cell uniqueness) | N² × C(N,2) | 16 × 6 = 96 |
-| A3 (row uniqueness) | N × C(N,2) × N | 4 × 6 × 4 = 96 |
-| A4 (col uniqueness) | N × C(N,2) × N | 96 |
-| A12 (row surjection) | N × N | 16 |
-| A13 (col surjection) | N × N | 16 |
+| A2 (cell uniqueness) | N² x C(N,2) | 16 x 6 = 96 |
+| A3 (row uniqueness) | N x C(N,2) x N | 4 x 6 x 4 = 96 |
+| A4 (col uniqueness) | N x C(N,2) x N | 96 |
+| A12 (row surjection) | N x N | 16 |
+| A13 (col surjection) | N x N | 16 |
 | A11 (Less facts) | C(N,2) | 6 |
 | A14 (irreflexivity) | N | 4 |
 | A15 (asymmetry) | C(N,2) | 6 |
-| A16 (contrapositives) | per constraint × N²/2 | varies |
-| **Total** | **≈ O(N⁴)** | **~350 for 4×4** |
+| A16 (contrapositives) | per constraint x N²/2 | varies |
+| **Total** | **≈ O(N⁴)** | **~350 for 4x4** |
 
 ---

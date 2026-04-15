@@ -204,7 +204,7 @@ class HudRenderer(BaseRenderer):
         py += 34
 
         # Speed slider
-        _draw_label(surface, fnt_lbl, f"Speed: {state.speed:.1f}×", px, py)
+        _draw_label(surface, fnt_lbl, f"Speed: {state.speed:.1f}x", px, py)
         py += 16
         slider_rect = pygame.Rect(px, py, pw, 12)
         self._draw_slider(surface, slider_rect, state.speed, 1.0, 20.0, in_solve)
@@ -414,7 +414,7 @@ class HudRenderer(BaseRenderer):
             hover = row_rect.collidepoint(mouse_pos)
             bg_c = T.CLR_BTN_HOVER if hover else (255, 255, 255)
             pygame.draw.rect(surface, bg_c, row_rect, border_radius=3)
-            label = f"{entry.name.replace('_', ' ')}   ({entry.size}×{entry.size}  {entry.difficulty})"
+            label = f"{entry.name.replace('_', ' ')}   ({entry.size}x{entry.size}  {entry.difficulty})"
             txt = fnt_lbl.render(label, True, T.CLR_LABEL)
             surface.blit(txt, (row_rect.x + 8, row_rect.y + (row_h - txt.get_height()) // 2 - 1))
             state._hud_rects["_puzzle_rows"].append((row_rect, entry))

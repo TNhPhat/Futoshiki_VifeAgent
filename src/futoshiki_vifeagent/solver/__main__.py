@@ -6,6 +6,7 @@ from typing import Sequence
 from futoshiki_vifeagent.benchmark import benchmark as benchmark_runner
 from benchmark import generator as benchmark_generator
 from benchmark import validator as benchmark_validator
+from benchmark import visualize as benchmark_visualize
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -38,6 +39,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         default=None,
         help="Optional benchmark directory containing input/ and expected/.",
     )
+    run_parser.add_argument(
+        "--max-n",
+        type=int,
+        default=None,
+        metavar="N",
+        help="Skip puzzles larger than NxN (e.g. --max-n 6 runs only 4x4..6x6).",
+    )
 
     generate_parser = subparsers.add_parser(
         "generate",
@@ -47,6 +55,26 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--benchmark-root",
         default=None,
         help="Optional benchmark directory that will contain input/ and expected/.",
+    )
+
+    visualize_parser = subparsers.add_parser(
+        "visualize",
+        help="Visualize benchmark CSVs as line charts and a completion-ratio heatmap.",
+    )
+    visualize_parser.add_argument(
+        "--data-dir",
+        default=None,
+        help="Directory containing benchmark CSV files (default: resource/output/).",
+    )
+    visualize_parser.add_argument(
+        "--output-dir",
+        default=None,
+        help="Save PNGs here instead of displaying interactively.",
+    )
+    visualize_parser.add_argument(
+        "--latex-dir",
+        default=None,
+        help="Generate LaTeX tables and save .tex files to this directory.",
     )
 
     validate_parser = subparsers.add_parser(
@@ -78,10 +106,23 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "run":
         solver_key = getattr(args, "solver", "backward_chaining")
         benchmark_root = getattr(args, "benchmark_root", None)
+        max_n = getattr(args, "max_n", None)
         benchmark_argv: list[str] = ["--solver", solver_key]
         if benchmark_root:
             benchmark_argv.extend(["--benchmark-root", benchmark_root])
+        if max_n is not None:
+            benchmark_argv.extend(["--max-n", str(max_n)])
         return benchmark_runner.main(benchmark_argv)
+
+    if args.command == "visualize":
+        visualize_argv: list[str] = []
+        if args.data_dir:
+            visualize_argv.extend(["--data-dir", args.data_dir])
+        if args.output_dir:
+            visualize_argv.extend(["--output-dir", args.output_dir])
+        if args.latex_dir:
+            visualize_argv.extend(["--latex-dir", args.latex_dir])
+        return benchmark_visualize.main(visualize_argv)
 
     if args.command == "generate":
         generator_argv: list[str] = []

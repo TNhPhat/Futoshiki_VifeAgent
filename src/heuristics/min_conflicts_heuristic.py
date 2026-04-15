@@ -24,7 +24,7 @@ class MinConflictsHeuristic(BaseHeuristic):
     """
     h₃(n) = Σ min_conflicts(i,j) for all unassigned cells.
 
-    Complexity: O(N² × d) where d = max domain size.
+    Complexity: O(N² x d) where d = max domain size.
     """
 
     def estimate(self, state: SearchState, puzzle: Puzzle) -> int:

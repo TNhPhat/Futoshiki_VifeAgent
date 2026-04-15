@@ -108,7 +108,7 @@ def test_solve_returns_tuple():
 
 
 def test_already_complete_valid():
-    """A fully filled valid 2×2 puzzle should be returned as-is in 1 expansion."""
+    """A fully filled valid 2x2 puzzle should be returned as-is in 1 expansion."""
     puzzle = make_puzzle(2, [[1, 2], [2, 1]])
     solution, stats = BruteForceSolver().solve(puzzle)
     assert solution is not None
@@ -126,7 +126,7 @@ def test_already_complete_invalid():
 
 def test_single_empty_cell():
     """Only one empty cell — exactly one valid value fills it."""
-    # 3×3: all cells given except (2,2); row 2 = [3, 1, ?], col 2 = [1, 3, ?] → must be 2
+    # 3x3: all cells given except (2,2); row 2 = [3, 1, ?], col 2 = [1, 3, ?] → must be 2
     puzzle = make_puzzle(3, [
         [2, 3, 1],
         [1, 2, 3],
@@ -144,7 +144,7 @@ def test_single_empty_cell():
 
 
 def test_2x2_no_constraints():
-    """2×2 all-empty puzzle with no constraints — must find a valid Latin square."""
+    """2x2 all-empty puzzle with no constraints — must find a valid Latin square."""
     puzzle = make_puzzle(2, [[0, 0], [0, 0]])
     solution, stats = BruteForceSolver().solve(puzzle)
     assert solution is not None
@@ -152,7 +152,7 @@ def test_2x2_no_constraints():
 
 
 def test_3x3_no_constraints_with_givens():
-    """3×3 with three givens and no inequalities — solution must be valid."""
+    """3x3 with three givens and no inequalities — solution must be valid."""
     puzzle = make_puzzle(3, [
         [2, 0, 0],
         [0, 0, 3],
@@ -164,7 +164,7 @@ def test_3x3_no_constraints_with_givens():
 
 
 def test_3x3_with_h_inequality():
-    """3×3 with a single horizontal < constraint — solution must respect it."""
+    """3x3 with a single horizontal < constraint — solution must respect it."""
     puzzle = make_puzzle(3, [
         [0, 0, 0],
         [0, 0, 0],
@@ -177,7 +177,7 @@ def test_3x3_with_h_inequality():
 
 
 def test_3x3_with_v_inequality():
-    """3×3 with a single vertical < constraint — solution must respect it."""
+    """3x3 with a single vertical < constraint — solution must respect it."""
     puzzle = make_puzzle(3, [
         [0, 0, 0],
         [0, 0, 0],
@@ -190,7 +190,7 @@ def test_3x3_with_v_inequality():
 
 
 def test_3x3_fixture():
-    """Parse the 3×3 fixture and verify the solver produces the known solution."""
+    """Parse the 3x3 fixture and verify the solver produces the known solution."""
     puzzle = Parser().parse(FIXTURE)
     solution, stats = BruteForceSolver().solve(puzzle)
     assert solution is not None, "Fixture puzzle must be solvable"
@@ -200,7 +200,7 @@ def test_3x3_fixture():
 
 
 def test_4x4_with_givens():
-    """4×4 puzzle with 12 givens (4 empty cells = 4^4=256 combinations).
+    """4x4 puzzle with 12 givens (4 empty cells = 4^4=256 combinations).
 
     Solution (cyclic Latin square):
         1 2 3 4
@@ -228,7 +228,7 @@ def test_4x4_with_givens():
 
 
 def test_4x4_with_constraints():
-    """4×4 with 8 givens and two inequality constraints.
+    """4x4 with 8 givens and two inequality constraints.
 
     Base solution:
         1 2 3 4
@@ -253,7 +253,7 @@ def test_4x4_with_constraints():
 
 
 def test_5x5_with_givens():
-    """5×5 puzzle with 20 givens (5 empty cells = 5^5=3125 combinations).
+    """5x5 puzzle with 20 givens (5 empty cells = 5^5=3125 combinations).
 
     Solution (cyclic Latin square):
         1 2 3 4 5
@@ -284,7 +284,7 @@ def test_5x5_with_givens():
 
 
 def test_5x5_with_constraints():
-    """5×5 with 16 givens and inequality constraints.
+    """5x5 with 16 givens and inequality constraints.
 
     Base solution:
         1 2 3 4 5
@@ -391,7 +391,7 @@ def test_impossible_inequality_chain():
         (0, 0, "<"),  # cell(0,0) < cell(1,0) — combined with row makes it tight
     ])
     # This specific puzzle IS solvable; test an actually impossible one:
-    # 2×2 with cell(0,0) < cell(0,1) AND cell(0,1) < cell(0,0) simultaneously
+    # 2x2 with cell(0,0) < cell(0,1) AND cell(0,1) < cell(0,0) simultaneously
     # We simulate via two conflicting constraints on same pair:
     impossible = Puzzle(
         N=2,

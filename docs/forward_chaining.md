@@ -55,7 +55,7 @@ FORWARD-CHAINING(KB):
 
 | Aspect | Value |
 |---|---|
-| **Time** | O(n × m) where n = facts derived, m = clauses |
+| **Time** | O(n x m) where n = facts derived, m = clauses |
 | **Space** | O(m) for clause storage |
 | **Completeness** | ✅ Complete for propositional Horn clauses |
 | **Soundness** | ✅ Every derived fact follows logically |
@@ -108,9 +108,9 @@ flowchart LR
     E --> F["Extract Solution\n-> solved grid"]
 ```
 
-### 5.3. Worked Example - 4×4 Grid
+### 5.3. Worked Example - 4x4 Grid
 
-Given a 4×4 puzzle with clue `Given(1,1,2)` and constraint `LessH(1,1)` (cell(1,1) < cell(1,2)):
+Given a 4x4 puzzle with clue `Given(1,1,2)` and constraint `LessH(1,1)` (cell(1,1) < cell(1,2)):
 
 ```
 Step 0 - KB contains:

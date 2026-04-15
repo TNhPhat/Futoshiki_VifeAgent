@@ -4,7 +4,7 @@ Tests for AC-3 propagator and AC-3 heuristic (h₄).
 Tests:
   1. AC3Propagator — domain pruning, contradiction detection, no-op
   2. AC3Heuristic — estimate correctness, comparison with h₂
-  3. AStarSolver + h₄ — end-to-end solving on 2×2, 3×3, 4×4 puzzles
+  3. AStarSolver + h₄ — end-to-end solving on 2x2, 3x3, 4x4 puzzles
   4. Unsolvable puzzles — contradiction flows through correctly
 """
 
@@ -300,7 +300,7 @@ class TestAC3Heuristic:
 
 
 class TestAStarSolverH4_2x2:
-    """2×2 puzzles with AC-3 heuristic."""
+    """2x2 puzzles with AC-3 heuristic."""
 
     def test_solve_2x2_known_solution(self):
         puzzle = make_puzzle(2, [[1, 0], [0, 0]], h=[(0, 0, "<")])
@@ -326,7 +326,7 @@ class TestAStarSolverH4_2x2:
 
 
 class TestAStarSolverH4_3x3:
-    """3×3 puzzles with AC-3 heuristic."""
+    """3x3 puzzles with AC-3 heuristic."""
 
     def test_solve_3x3_with_givens(self):
         puzzle = make_puzzle(3, [
@@ -365,7 +365,7 @@ class TestAStarSolverH4_3x3:
 
 
 class TestAStarSolverH4_4x4:
-    """4×4 puzzles with AC-3 heuristic."""
+    """4x4 puzzles with AC-3 heuristic."""
 
     def test_solve_4x4_with_givens(self):
         puzzle = make_puzzle(4, [
