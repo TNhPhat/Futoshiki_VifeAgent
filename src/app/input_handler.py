@@ -33,20 +33,34 @@ class InputHandler:
             if event.button == 1:
                 self.handle_click(event.pos)
             elif event.button == 4:   # scroll up
-                state.puzzle_list_scroll = max(0, state.puzzle_list_scroll - 1)
+                if state.mode == AppMode.KB and state.kb_show_popup:
+                    state._kb_popup_scroll = max(0, getattr(state, "_kb_popup_scroll", 0) - 20)
+                elif state.mode == AppMode.KB:
+                    state.cnf_kb_scroll = max(0, state.cnf_kb_scroll - 1)
+                else:
+                    state.puzzle_list_scroll = max(0, state.puzzle_list_scroll - 1)
             elif event.button == 5:   # scroll down
-                state.puzzle_list_scroll += 1
+                if state.mode == AppMode.KB and state.kb_show_popup:
+                    state._kb_popup_scroll = getattr(state, "_kb_popup_scroll", 0) + 20
+                elif state.mode == AppMode.KB:
+                    state.cnf_kb_scroll += 1
+                else:
+                    state.puzzle_list_scroll += 1
 
         elif event.type == pygame.KEYDOWN:
             self.handle_keydown(event)
 
         elif event.type == pygame.MOUSEMOTION:
+            # Slider drag (SOLVE mode)
             if pygame.mouse.get_pressed()[0]:
                 rects = getattr(state, "_hud_rects", {})
                 slider = rects.get("speed_slider")
                 if slider and slider.collidepoint(event.pos):
                     t = (event.pos[0] - slider.x) / max(1, slider.width)
                     state.speed = round(max(1.0, min(20.0, 1.0 + t * 19.0)), 1)
+            # KB hover tracking
+            if state.mode == AppMode.KB:
+                self._update_kb_hover(event.pos)
 
     # ------------------------------------------------------------------
     # Click routing
@@ -56,6 +70,23 @@ class InputHandler:
         app   = self._app
         state = app._state
         rects: dict[str, Any] = getattr(state, "_hud_rects", {})
+
+        # --- KB reference popup takes priority ---
+        if state.mode == AppMode.KB and state.kb_show_popup:
+            if rects.get("kb_popup_close", pygame.Rect(0, 0, 0, 0)).collidepoint(pos):
+                state.kb_show_popup = False
+                return
+            if rects.get("kb_popup_scroll_up", pygame.Rect(0, 0, 0, 0)).collidepoint(pos):
+                state._kb_popup_scroll = max(0, getattr(state, "_kb_popup_scroll", 0) - 20)
+                return
+            if rects.get("kb_popup_scroll_down", pygame.Rect(0, 0, 0, 0)).collidepoint(pos):
+                state._kb_popup_scroll = getattr(state, "_kb_popup_scroll", 0) + 20
+                return
+            # Click outside card → close
+            from ui.layout import GRID_AREA_RECT
+            # Any click that didn't hit a popup button dismisses the popup
+            state.kb_show_popup = False
+            return
 
         # --- Overlays take priority ---
         if state.show_puzzle_list:
@@ -82,8 +113,8 @@ class InputHandler:
             app._switch_mode(AppMode.PLAY);  return
         if rects.get("tab_solve", pygame.Rect(0, 0, 0, 0)).collidepoint(pos):
             app._switch_mode(AppMode.SOLVE); return
-        if rects.get("tab_menu",  pygame.Rect(0, 0, 0, 0)).collidepoint(pos):
-            app._switch_mode(AppMode.MENU);  return
+        if rects.get("tab_kb",    pygame.Rect(0, 0, 0, 0)).collidepoint(pos):
+            app._switch_mode(AppMode.KB);    return
 
         # --- Solve controls ---
         if state.mode == AppMode.SOLVE:
@@ -133,9 +164,50 @@ class InputHandler:
                 state.notes_mode = not state.notes_mode
             return
 
+        # --- KB mode clicks ---
+        if state.mode == AppMode.KB:
+            if rects.get("kb_help_btn", pygame.Rect(0, 0, 0, 0)).collidepoint(pos):
+                state.kb_show_popup = not state.kb_show_popup
+                state._kb_popup_scroll = 0
+                return
+            if rects.get("cnf_kb_up", pygame.Rect(0, 0, 0, 0)).collidepoint(pos):
+                state.cnf_kb_scroll = max(0, state.cnf_kb_scroll - 1)
+                return
+            if rects.get("cnf_kb_down", pygame.Rect(0, 0, 0, 0)).collidepoint(pos):
+                state.cnf_kb_scroll += 1
+                return
+            for row_rect, q_rect, lit in rects.get("_kb_fact_rows", []):
+                if q_rect.collidepoint(pos):
+                    # Toggle pin: clicking again unpins
+                    state.kb_selected_lit = None if state.kb_selected_lit == lit else lit
+                    return
+            return  # no grid interaction in KB mode
+
         # --- Grid cell click ---
         if state.mode == AppMode.PLAY and state.board:
             self._handle_grid_click(pos)
+
+    def _update_kb_hover(self, pos: tuple[int, int]) -> None:
+        """Update kb_hovered_lit and kb_hovered_cell from mouse position."""
+        state = self._app._state
+        state.kb_hovered_lit = None
+        for row_rect, _q_rect, lit in state._hud_rects.get("_kb_fact_rows", []):
+            if row_rect.collidepoint(pos):
+                state.kb_hovered_lit = lit
+                break
+
+        # Detect which grid cell the mouse is over
+        state.kb_hovered_cell = None
+        board = state.board
+        if board is not None:
+            from ui.layout import cell_rect, grid_geometry
+            N = board.puzzle.N
+            grid_rect, cell_size, gap = grid_geometry(N)
+            for i in range(N):
+                for j in range(N):
+                    if cell_rect(i, j, grid_rect, cell_size, gap).collidepoint(pos):
+                        state.kb_hovered_cell = (i, j)
+                        return
 
     def _handle_puzzle_list_click(self, pos: tuple[int, int], rects: dict) -> None:
         app   = self._app
@@ -171,6 +243,18 @@ class InputHandler:
 
     def handle_keydown(self, event: pygame.event.Event) -> None:
         state = self._app._state
+
+        # Esc closes any modal overlay
+        if event.key == pygame.K_ESCAPE:
+            if state.kb_show_popup:
+                state.kb_show_popup = False
+                return
+            if state.show_puzzle_list:
+                state.show_puzzle_list = False
+                return
+            if state.show_solver_dropdown:
+                state.show_solver_dropdown = False
+                return
 
         # Global shortcuts
         if event.key == pygame.K_F1:

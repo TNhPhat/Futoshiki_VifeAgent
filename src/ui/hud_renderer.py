@@ -7,12 +7,15 @@ can resolve clicks without coupling the renderer to event handling.
 """
 from __future__ import annotations
 
+from collections import Counter
+
 import pygame
 
 import ui.theme as T
 from models.game_state import AppMode, GameState
 from ui.base import BaseRenderer
 from ui.layout import (
+    GRID_AREA_RECT,
     PLAY_PANEL_RECT,
     PUZZLE_PANEL_RECT,
     SCREEN_W,
@@ -25,6 +28,9 @@ from ui.layout import (
     TITLE_BAR_H,
     TITLE_BAR_RECT,
 )
+
+# Re-export so import lines stay short
+_SIDE = SIDE_PANEL_RECT
 
 
 # ---------------------------------------------------------------------------
@@ -68,23 +74,74 @@ def _draw_label(surface, fnt, text, x, y, colour=None):
 
 
 # ---------------------------------------------------------------------------
+# CNF literal explanation helper
+# ---------------------------------------------------------------------------
+
+def _explain_literal(lit) -> list[str]:
+    """Return 1-3 human-readable lines explaining what a fact means."""
+    n, args, neg = lit.name, lit.args, lit.negated
+    if n == "Val":
+        r, c, v = args
+        if neg:
+            return [f"Cell ({r+1},{c+1}) cannot hold", f"value {v}."]
+        return [f"Cell ({r+1},{c+1}) holds", f"value {v}."]
+    if n == "Given":
+        r, c, v = args
+        return [f"Cell ({r+1},{c+1}) is a clue:", f"pre-filled with value {v}."]
+    if n == "NotVal":
+        r, c, v = args
+        return [f"Cell ({r+1},{c+1}) is excluded", f"from value {v}."]
+    if n == "ValidVal":
+        r, c, v = args
+        return [f"Value {v} is valid", f"for cell ({r+1},{c+1})."]
+    if n == "LessH":
+        r, c = args
+        return [f"Horiz. constraint:", f"cell({r+1},{c+1}) < cell({r+1},{c+2})."]
+    if n == "GreaterH":
+        r, c = args
+        return [f"Horiz. constraint:", f"cell({r+1},{c+1}) > cell({r+1},{c+2})."]
+    if n == "LessV":
+        r, c = args
+        return [f"Vert. constraint:", f"cell({r+1},{c+1}) < cell({r+2},{c+1})."]
+    if n == "GreaterV":
+        r, c = args
+        return [f"Vert. constraint:", f"cell({r+1},{c+1}) > cell({r+2},{c+1})."]
+    if n == "Less":
+        v1, v2 = args
+        return [f"Numeric relation:", f"{v1} < {v2}."]
+    if n == "Geq":
+        v1, v2 = args
+        return [f"Numeric relation:", f"{v2} \u2265 {v1}."]
+    if n == "Diff":
+        a, b = args
+        return [f"Numeric relation:", f"{a} \u2260 {b}."]
+    if n == "Domain":
+        return [f"Value {args[0]} is in", "the domain (1..N)."]
+    sign = "\u00ac" if neg else ""
+    return [f"{sign}{n}({','.join(str(a) for a in args)})"]
+
+
+# ---------------------------------------------------------------------------
 # HUD Renderer
 # ---------------------------------------------------------------------------
 
 class HudRenderer(BaseRenderer):
 
     def render(self, surface: pygame.Surface, state: GameState) -> None:
-        # Initialise hit-test rect dict on state (duck-typed)
-        if not hasattr(state, "_hud_rects"):
-            state._hud_rects = {}
+        # Reset hit-test rects every frame so stale entries from a previous
+        # mode cannot be accidentally triggered in the current mode.
+        state._hud_rects = {}
 
         mouse_pos = pygame.mouse.get_pos()
 
         self._draw_title_bar(surface, state, mouse_pos)
         self._draw_side_panel_bg(surface)
-        self._draw_solver_panel(surface, state, mouse_pos)
-        self._draw_puzzle_panel(surface, state, mouse_pos)
-        self._draw_play_panel(surface, state, mouse_pos)
+        if state.mode == AppMode.KB:
+            self._draw_kb_panel(surface, state, mouse_pos)
+        else:
+            self._draw_solver_panel(surface, state, mouse_pos)
+            self._draw_puzzle_panel(surface, state, mouse_pos)
+            self._draw_play_panel(surface, state, mouse_pos)
 
         # Overlay: puzzle list or generate dialog
         if state.show_puzzle_list:
@@ -95,6 +152,10 @@ class HudRenderer(BaseRenderer):
         # Solver dropdown drawn last so it appears above everything else
         if state.show_solver_dropdown:
             self._draw_solver_dropdown(surface, state, mouse_pos)
+
+        # KB reference popup drawn on top of everything
+        if state.mode == AppMode.KB and state.kb_show_popup:
+            self._draw_kb_popup(surface, state, mouse_pos)
 
     # ------------------------------------------------------------------
     # Title bar
@@ -112,7 +173,7 @@ class HudRenderer(BaseRenderer):
         tabs = [
             ("PLAY",  AppMode.PLAY,  TAB_PLAY_RECT),
             ("SOLVE", AppMode.SOLVE, TAB_SOLVE_RECT),
-            ("MENU",  AppMode.MENU,  TAB_MENU_RECT),
+            ("KB",    AppMode.KB,    TAB_MENU_RECT),
         ]
         fnt_tab = T.font("tab")
         for label, mode, rect in tabs:
@@ -123,7 +184,8 @@ class HudRenderer(BaseRenderer):
             txt = fnt_tab.render(label, True, fg)
             trect = txt.get_rect(center=rect.center)
             surface.blit(txt, trect)
-            state._hud_rects[f"tab_{label.lower()}"] = rect
+            key = "tab_kb" if label == "KB" else f"tab_{label.lower()}"
+            state._hud_rects[key] = rect
 
     # ------------------------------------------------------------------
     # Side panel background
@@ -314,6 +376,145 @@ class HudRenderer(BaseRenderer):
         )
 
     # ------------------------------------------------------------------
+    # KB panel  (full side panel, shown in AppMode.KB)
+    # ------------------------------------------------------------------
+
+    def _draw_kb_panel(self, surface, state, mouse_pos):
+        r = SIDE_PANEL_RECT
+        px = r.x + SIDE_PANEL_PADDING
+        pw = r.width - 2 * SIDE_PANEL_PADDING
+        py = r.y + SIDE_PANEL_PADDING
+
+        fnt_lbl = T.font("hud_label")
+        fnt_val = T.font("hud_value")
+        fnt_btn = T.font("btn")
+
+        kb = state.cnf_kb
+
+        # ── Header ───────────────────────────────────────────────────
+        _draw_label(surface, fnt_val, "CNF KNOWLEDGE BASE", px, py, T.CLR_LABEL_TITLE)
+        help_rect = pygame.Rect(r.right - SIDE_PANEL_PADDING - 22, py, 22, 20)
+        _draw_button(surface, help_rect, "?", fnt_btn,
+                     active=state.kb_show_popup,
+                     hover=help_rect.collidepoint(mouse_pos))
+        state._hud_rects["kb_help_btn"] = help_rect
+        py += 22
+
+        if kb is None:
+            _draw_label(surface, fnt_lbl, "No puzzle loaded.", px, py)
+            return
+
+        lengths = Counter(len(c) for c in kb.clauses)
+        unit_n   = lengths.get(1, 0)
+        binary_n = lengths.get(2, 0)
+        longer_n = sum(v for k, v in lengths.items() if k >= 3)
+
+        _draw_label(surface, fnt_lbl,
+                    f"Total: {len(kb.clauses)}    Unit (facts): {unit_n}", px, py)
+        py += 16
+        _draw_label(surface, fnt_lbl,
+                    f"Binary: {binary_n}    Longer (3+): {longer_n}", px, py)
+        py += 20
+
+        pygame.draw.line(surface, T.CLR_PANEL_BORDER,
+                         (px, py), (r.right - SIDE_PANEL_PADDING, py), 1)
+        py += 8
+
+        # ── FACTS header + scroll arrows ─────────────────────────────
+        facts = sorted(kb.facts, key=lambda l: (l.name, l.args, l.negated))
+
+        _draw_label(surface, fnt_val, "FACTS", px, py, T.CLR_LABEL_TITLE)
+
+        arrow_w, arrow_h = 18, 17
+        down_rect = pygame.Rect(r.right - SIDE_PANEL_PADDING - arrow_w,
+                                py, arrow_w, arrow_h)
+        up_rect   = pygame.Rect(down_rect.x - arrow_w - 2, py, arrow_w, arrow_h)
+
+        # Reserve bottom info-box: separator + header + 3 text lines
+        info_box_h   = 12 + 18 + 3 * 15 + 8   # ~83 px
+        info_box_top = r.bottom - SIDE_PANEL_PADDING - info_box_h
+
+        row_h = 20
+        q_w   = 16
+        facts_start_y = py + arrow_h + 4
+        available_h   = info_box_top - facts_start_y - 4
+        visible_rows  = max(1, available_h // row_h)
+
+        max_scroll = max(0, len(facts) - visible_rows)
+        scroll = max(0, min(state.cnf_kb_scroll, max_scroll))
+        state.cnf_kb_scroll = scroll
+
+        if facts:
+            end_idx  = min(scroll + visible_rows, len(facts))
+            pos_txt  = fnt_lbl.render(f"{scroll+1}\u2013{end_idx}/{len(facts)}",
+                                      True, T.CLR_LABEL)
+            surface.blit(pos_txt, (up_rect.x - pos_txt.get_width() - 4, py + 2))
+
+        can_up   = scroll > 0
+        can_down = scroll < max_scroll
+        _draw_button(surface, up_rect,   "^", fnt_btn,
+                     disabled=not can_up,
+                     hover=up_rect.collidepoint(mouse_pos) and can_up)
+        _draw_button(surface, down_rect, "v", fnt_btn,
+                     disabled=not can_down,
+                     hover=down_rect.collidepoint(mouse_pos) and can_down)
+        state._hud_rects["cnf_kb_up"]   = up_rect
+        state._hud_rects["cnf_kb_down"] = down_rect
+        py = facts_start_y
+
+        # ── Scrollable fact rows ──────────────────────────────────────
+        fact_rows: list = []
+        if not facts:
+            _draw_label(surface, fnt_lbl, "(no unit facts)", px + 4, py)
+        else:
+            for lit in facts[scroll : scroll + visible_rows]:
+                row_rect = pygame.Rect(px, py, pw - q_w - 4, row_h)
+                q_rect   = pygame.Rect(r.right - SIDE_PANEL_PADDING - q_w,
+                                       py + 2, q_w, row_h - 4)
+
+                is_hover = row_rect.collidepoint(mouse_pos) or q_rect.collidepoint(mouse_pos)
+
+                if is_hover:
+                    pygame.draw.rect(surface, T.CLR_BTN_HOVER, row_rect, border_radius=3)
+                    fg = T.CLR_BTN_TEXT
+                else:
+                    fg = T.CLR_LABEL
+
+                sign     = "\u00ac" if lit.negated else " "  # ¬ or space
+                args_str = ",".join(str(a) for a in lit.args)
+                text     = f"{sign}{lit.name}({args_str})"
+                if len(text) > 22:
+                    text = text[:21] + "\u2026"
+                lbl = fnt_lbl.render(text, True, fg)
+                surface.blit(lbl, (px + 4, py + (row_h - lbl.get_height()) // 2))
+
+                _draw_button(surface, q_rect, "?", fnt_btn,
+                             hover=q_rect.collidepoint(mouse_pos))
+                fact_rows.append((row_rect, q_rect, lit))
+                py += row_h
+
+        state._hud_rects["_kb_fact_rows"] = fact_rows
+
+        # ── Info / explanation box ────────────────────────────────────
+        pygame.draw.line(surface, T.CLR_PANEL_BORDER,
+                         (px, info_box_top), (r.right - SIDE_PANEL_PADDING, info_box_top), 1)
+        ipy = info_box_top + 8
+
+        lit_to_explain = state.kb_selected_lit or state.kb_hovered_lit
+        if lit_to_explain is not None:
+            _draw_label(surface, fnt_val, "ABOUT", px, ipy, T.CLR_LABEL_TITLE)
+            ipy += 18
+            for line in _explain_literal(lit_to_explain):
+                _draw_label(surface, fnt_lbl, line, px + 4, ipy)
+                ipy += 15
+        else:
+            _draw_label(surface, fnt_lbl, "Hover a fact to highlight", px, ipy)
+            ipy += 15
+            _draw_label(surface, fnt_lbl, "its cells on the grid.", px, ipy)
+            ipy += 15
+            _draw_label(surface, fnt_lbl, "Click [?] to pin an explanation.", px, ipy)
+
+    # ------------------------------------------------------------------
     # Play panel
     # ------------------------------------------------------------------
 
@@ -469,6 +670,113 @@ class HudRenderer(BaseRenderer):
             state._hud_rects["_solver_dropdown_items"].append((item_rect, skey))
 
     # ------------------------------------------------------------------
+    # KB reference popup
+    # ------------------------------------------------------------------
+
+    def _draw_kb_popup(self, surface, state, mouse_pos):
+        """Modal overlay covering the grid area that explains all CNF clauses."""
+        fnt_lbl = T.font("hud_label")
+        fnt_val = T.font("hud_value")
+        fnt_btn = T.font("btn")
+
+        # Dim the grid area
+        dim = pygame.Surface((GRID_AREA_RECT.width, GRID_AREA_RECT.height), pygame.SRCALPHA)
+        dim.fill((20, 20, 20, 180))
+        surface.blit(dim, GRID_AREA_RECT.topleft)
+
+        # Card dimensions
+        card_w = min(580, GRID_AREA_RECT.width - 40)
+        card_h = min(520, GRID_AREA_RECT.height - 40)
+        card_x = GRID_AREA_RECT.x + (GRID_AREA_RECT.width  - card_w) // 2
+        card_y = GRID_AREA_RECT.y + (GRID_AREA_RECT.height - card_h) // 2
+        card   = pygame.Rect(card_x, card_y, card_w, card_h)
+
+        pygame.draw.rect(surface, (248, 248, 245), card, border_radius=8)
+        pygame.draw.rect(surface, T.CLR_PANEL_BORDER, card, 2, border_radius=8)
+
+        # Top bar: title text + scroll arrows + close button
+        _draw_label(surface, fnt_val, "CNF CLAUSE REFERENCE",
+                    card_x + 14, card_y + 10, T.CLR_LABEL_TITLE)
+        close_rect = pygame.Rect(card.right - 32, card.y + 8, 24, 22)
+        _draw_button(surface, close_rect, "X", fnt_btn,
+                     hover=close_rect.collidepoint(mouse_pos))
+        state._hud_rects["kb_popup_close"] = close_rect
+
+        # Content area with clipping
+        content_rect = pygame.Rect(card_x + 14, card_y + 36, card_w - 28, card_h - 44)
+        scroll_offset = getattr(state, "_kb_popup_scroll", 0)
+
+        # Build all content lines first so we can compute total height
+        # Skip the title item since it's drawn in the fixed top bar
+        sections = [s for s in _KB_POPUP_SECTIONS if s[0] != "title"]
+
+        line_h   = 16
+        head_h   = 22
+        sep_h    = 10
+        total_h  = 0
+        for kind, *data in sections:
+            if kind == "heading":
+                total_h += head_h
+            elif kind == "text":
+                total_h += line_h
+            elif kind == "sep":
+                total_h += sep_h
+
+        # Clamp scroll
+        visible_h = content_rect.height
+        max_scroll = max(0, total_h - visible_h)
+        scroll_offset = max(0, min(scroll_offset, max_scroll))
+        state._kb_popup_scroll = scroll_offset
+
+        # Scroll arrows (top-right of card, left of close button)
+        up_rect_p   = pygame.Rect(card.right - 84, card_y + 8, 22, 22)
+        down_rect_p = pygame.Rect(card.right - 58, card_y + 8, 22, 22)
+        _draw_button(surface, up_rect_p, "^", fnt_btn,
+                     disabled=(scroll_offset == 0),
+                     hover=up_rect_p.collidepoint(mouse_pos) and scroll_offset > 0)
+        _draw_button(surface, down_rect_p, "v", fnt_btn,
+                     disabled=(scroll_offset >= max_scroll),
+                     hover=down_rect_p.collidepoint(mouse_pos) and scroll_offset < max_scroll)
+        state._hud_rects["kb_popup_scroll_up"]   = up_rect_p
+        state._hud_rects["kb_popup_scroll_down"] = down_rect_p
+
+        # Separator under top bar
+        pygame.draw.line(surface, T.CLR_PANEL_BORDER,
+                         (card_x + 8, card_y + 34), (card.right - 8, card_y + 34), 1)
+
+        # Clip drawing to content rect
+        old_clip = surface.get_clip()
+        surface.set_clip(content_rect)
+
+        py = content_rect.y - scroll_offset
+        col_left  = card_x + 14
+        col_right = card_x + card_w // 2 + 6
+
+        for item in sections:
+            kind = item[0]
+            if kind == "heading":
+                txt = fnt_val.render(item[1], True, (60, 90, 160))
+                surface.blit(txt, (col_left, py))
+                py += head_h
+            elif kind == "text":
+                # item = ("text", left_text, right_text_or_None)
+                left_s  = item[1]
+                right_s = item[2] if len(item) > 2 else None
+                ltxt = fnt_lbl.render(left_s, True, T.CLR_LABEL)
+                surface.blit(ltxt, (col_left + 8, py))
+                if right_s:
+                    rtxt = fnt_lbl.render(right_s, True, T.CLR_LABEL)
+                    surface.blit(rtxt, (col_right, py))
+                py += line_h
+            elif kind == "sep":
+                mid_y = py + sep_h // 2
+                pygame.draw.line(surface, T.CLR_PANEL_BORDER,
+                                 (col_left, mid_y), (card.right - 14, mid_y), 1)
+                py += sep_h
+
+        surface.set_clip(old_clip)
+
+    # ------------------------------------------------------------------
     # Generate dialog
     # ------------------------------------------------------------------
 
@@ -489,3 +797,52 @@ class HudRenderer(BaseRenderer):
         _draw_label(surface, fnt_val, "Generating puzzle…", ox + 12, py, T.CLR_LABEL_TITLE)
         py += 28
         _draw_label(surface, T.font("hud_label"), "This may take a few seconds.", ox + 12, py)
+
+
+# ---------------------------------------------------------------------------
+# KB popup content — static reference card
+# ---------------------------------------------------------------------------
+
+_KB_POPUP_SECTIONS = [
+    ("title",   "CNF CLAUSE REFERENCE"),
+    ("heading", "PREDICATES"),
+    ("text",    "Val(r,c,v)      Cell (r,c) holds value v."),
+    ("text",    "Given(r,c,v)    Cell (r,c) is a pre-filled clue."),
+    ("text",    "LessH(r,c)      Horizontal: cell(r,c) < cell(r,c+1)."),
+    ("text",    "GreaterH(r,c)   Horizontal: cell(r,c) > cell(r,c+1)."),
+    ("text",    "LessV(r,c)      Vertical:   cell(r,c) < cell(r+1,c)."),
+    ("text",    "GreaterV(r,c)   Vertical:   cell(r,c) > cell(r+1,c)."),
+    ("text",    "Less(a,b)       Numeric ordering: a < b."),
+    ("text",    "Diff(a,b)       Numeric:  a \u2260 b."),
+    ("text",    "Domain(v)       Value v is in 1..N."),
+    ("sep",),
+    ("heading", "AXIOM GROUPS"),
+    ("text",    "A1  Each cell holds at least one value."),
+    ("text",    "    Val(r,c,1) \u2228 \u2026 \u2228 Val(r,c,N)"),
+    ("text",    "A2  A cell cannot hold two different values."),
+    ("text",    "    \u00acVal(r,c,v1) \u2228 \u00acVal(r,c,v2)  for v1\u2260v2"),
+    ("text",    "A3  No value repeats in a row."),
+    ("text",    "    \u00acVal(r,c1,v) \u2228 \u00acVal(r,c2,v)  for c1\u2260c2"),
+    ("text",    "A4  No value repeats in a column."),
+    ("text",    "    \u00acVal(r1,c,v) \u2228 \u00acVal(r2,c,v)  for r1\u2260r2"),
+    ("text",    "A5-A8  Inequality constraints propagate values."),
+    ("text",    "    LessH(r,c) \u2228 \u00acVal(r,c,v) \u2228 \u00acVal(r,c+1,u)  for v\u2265u"),
+    ("text",    "A9  Given clue cells are fixed."),
+    ("text",    "    Val(r,c,v)  for each pre-filled cell"),
+    ("text",    "A11 Numeric Less facts for all a<b."),
+    ("text",    "    Less(a,b)  for each pair 1\u2264a<b\u2264N"),
+    ("text",    "A12/A13  Every value appears in every row/col."),
+    ("text",    "    Val(r,1,v) \u2228 \u2026 \u2228 Val(r,N,v)"),
+    ("text",    "A14/A15  Less is irreflexive and asymmetric."),
+    ("text",    "    \u00acLess(a,a)     \u00acLess(a,b) \u2228 \u00acLess(b,a)"),
+    ("text",    "A16  Inequality contrapositive (forbidden pairs)."),
+    ("text",    "    \u00acLessH(r,c) \u2228 \u00acVal(r,c,v) \u2228 \u00acVal(r,c+1,u)  v\u2265u"),
+    ("sep",),
+    ("heading", "HOW TO USE"),
+    ("text",    "Hover a fact in the panel to highlight its cells"),
+    ("text",    "and constraint arrows on the grid."),
+    ("text",    "Less(a,b) facts highlight ALL inequality cells"),
+    ("text",    "because they support every ordering constraint."),
+    ("text",    "Click [?] next to a fact to pin its explanation."),
+    ("text",    "Press Esc or click X to close this popup."),
+]

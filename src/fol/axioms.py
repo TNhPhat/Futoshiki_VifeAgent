@@ -3,7 +3,7 @@ from __future__ import annotations
 from itertools import combinations
 from typing import TYPE_CHECKING
 
-from .predicates import Clause, Less, Val
+from .predicates import Clause, GreaterH, GreaterV, Less, LessH, LessV, Val
 
 if TYPE_CHECKING:
     from core.puzzle import Puzzle
@@ -342,12 +342,42 @@ class Axioms:
                     ])
         return clauses
 
+    @staticmethod
+    def a_constraint_facts(puzzle: "Puzzle") -> list[Clause]:
+        """
+        Unit clauses asserting each inequality constraint in the puzzle.
+
+        For each horizontal ``<`` constraint at ``(i, j)`` emits ``[LessH(i,j)]``;
+        for ``>`` emits ``[GreaterH(i,j)]``.  Similarly for vertical constraints.
+
+        These unit facts make each constraint directly visible in the KB facts
+        list and allow the UI to highlight the two cells it involves.
+
+        Parameters
+        ----------
+        puzzle : Puzzle
+            Puzzle instance carrying ``h_constraints`` and ``v_constraints``.
+
+        Returns
+        -------
+        list of Clause
+            One unit clause per inequality constraint.
+        """
+        clauses: list[Clause] = []
+        for c in puzzle.h_constraints:
+            i, j = c.cell1
+            clauses.append([LessH(i, j) if c.direction == "<" else GreaterH(i, j)])
+        for c in puzzle.v_constraints:
+            i, j = c.cell1
+            clauses.append([LessV(i, j) if c.direction == "<" else GreaterV(i, j)])
+        return clauses
+
     # ==============================================================
     # Clues & Domain
     # ==============================================================
 
     @staticmethod
-    def a9_given_clues(N: int, puzzle: Puzzle) -> list[Clause]:
+    def a9_given_clues(N: int, puzzle: "Puzzle") -> list[Clause]:
         """
         A9 — Pre-filled cells must keep their given value.
 

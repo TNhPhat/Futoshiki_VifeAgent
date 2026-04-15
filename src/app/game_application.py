@@ -14,6 +14,7 @@ import threading
 import numpy as np
 import pygame
 
+from fol.cnf_generator import CNFGenerator
 from models.board import Board
 from models.game_state import AppMode, GameState, SolveStep
 from models.puzzle_repository import InMemoryPuzzleRepository, PuzzleEntry
@@ -199,6 +200,11 @@ class GameApplication:
         elif new_mode != AppMode.SOLVE and old_mode == AppMode.SOLVE:
             state.stop_event.set()
 
+        if new_mode != AppMode.KB:
+            state.kb_hovered_lit  = None
+            state.kb_selected_lit = None
+            state.kb_hovered_cell = None
+
         state.mode = new_mode
 
     # ------------------------------------------------------------------
@@ -225,6 +231,8 @@ class GameApplication:
         state.board = Board(puzzle=puzzle)
         state._puzzle_name = entry.name.replace("_", " ")
         state.notes_mode = False
+        state.cnf_kb = CNFGenerator.generate(puzzle)
+        state.cnf_kb_scroll = 0
 
     def _start_generate(self, n: int, difficulty: str = "medium") -> None:
         state = self._state
@@ -237,6 +245,8 @@ class GameApplication:
                 state.board = Board(puzzle=puzzle)
                 state._puzzle_name = f"Random {n}x{n}"
                 state.notes_mode = False
+                state.cnf_kb = CNFGenerator.generate(puzzle)
+                state.cnf_kb_scroll = 0
             except Exception as exc:
                 print(f"[generate worker] {exc}")
             finally:

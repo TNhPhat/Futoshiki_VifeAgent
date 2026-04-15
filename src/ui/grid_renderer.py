@@ -9,7 +9,7 @@ import pygame
 import ui.theme as T
 from models.game_state import AppMode, GameState
 from ui.base import BaseRenderer
-from ui.layout import cell_rect, grid_geometry
+from ui.layout import GRID_AREA_RECT, cell_rect, grid_geometry
 
 
 class GridRenderer(BaseRenderer):
@@ -44,8 +44,22 @@ class GridRenderer(BaseRenderer):
         # Draw outer grid border
         pygame.draw.rect(surface, T.CLR_GRID_LINE, grid_rect, 2)
 
+        # KB mode: highlight cells referenced by the hovered / selected fact
+        if state.mode == AppMode.KB:
+            lit = state.kb_hovered_lit or state.kb_selected_lit
+            for (hi, hj) in _lit_cells_for_puzzle(lit, board.puzzle):
+                hrect = cell_rect(hi, hj, grid_rect, cell_size, gap)
+                hl = pygame.Surface((hrect.width, hrect.height), pygame.SRCALPHA)
+                hl.fill((*T.CLR_CELL_KB_HL, 160))
+                surface.blit(hl, hrect.topleft)
+                pygame.draw.rect(surface, T.CLR_KB_CONSTRAINT, hrect, 3)
+
         # Notification overlay
         self._draw_notification(surface, state, grid_rect)
+
+        # KB mode: domain tooltip for hovered cell
+        if state.mode == AppMode.KB and state.kb_hovered_cell is not None:
+            self._draw_domain_tooltip(surface, state, board, grid_rect, cell_size, gap)
 
     # ------------------------------------------------------------------
     # Single cell
@@ -126,6 +140,59 @@ class GridRenderer(BaseRenderer):
             surface.blit(txt, trect)
 
     # ------------------------------------------------------------------
+    # KB domain tooltip
+    # ------------------------------------------------------------------
+
+    def _draw_domain_tooltip(self, surface, state, board, grid_rect, cell_size, gap):
+        i, j = state.kb_hovered_cell
+        N = board.puzzle.N
+        grid = board.grid
+
+        cell_val = int(grid[i, j])
+        if cell_val != 0:
+            lines = [f"Cell ({i+1},{j+1})", f"Fixed: {cell_val}"]
+        else:
+            used = set()
+            for c in range(N):
+                v = int(grid[i, c])
+                if v:
+                    used.add(v)
+            for r in range(N):
+                v = int(grid[r, j])
+                if v:
+                    used.add(v)
+            domain = sorted(set(range(1, N + 1)) - used)
+            domain_str = "{" + ",".join(str(v) for v in domain) + "}" if domain else "\u2205"
+            lines = [f"Cell ({i+1},{j+1})", f"Domain: {domain_str}"]
+
+        fnt = T.font("hud_label")
+        pad = 6
+        line_h = fnt.size("A")[1] + 2
+        w = max(fnt.size(l)[0] for l in lines) + pad * 2
+        h = len(lines) * line_h + pad * 2
+
+        # Position tooltip below-right of the cell, clamp inside grid area
+        from ui.layout import GRID_AREA_RECT
+        crect = cell_rect(i, j, grid_rect, cell_size, gap)
+        tx = crect.right + 4
+        ty = crect.top
+        if tx + w > GRID_AREA_RECT.right - 4:
+            tx = crect.left - w - 4
+        if ty + h > GRID_AREA_RECT.bottom - 4:
+            ty = GRID_AREA_RECT.bottom - h - 4
+
+        tip = pygame.Rect(tx, ty, w, h)
+        bg = pygame.Surface((w, h), pygame.SRCALPHA)
+        bg.fill((40, 40, 40, 220))
+        surface.blit(bg, tip.topleft)
+        pygame.draw.rect(surface, (180, 180, 180), tip, 1)
+
+        for k, line in enumerate(lines):
+            colour = (255, 220, 80) if k == 0 else (240, 240, 240)
+            txt = fnt.render(line, True, colour)
+            surface.blit(txt, (tip.x + pad, tip.y + pad + k * line_h))
+
+    # ------------------------------------------------------------------
     # Notification
     # ------------------------------------------------------------------
 
@@ -147,6 +214,48 @@ class GridRenderer(BaseRenderer):
         s.fill((40, 40, 40, 200))
         surface.blit(s, bg_rect.topleft)
         surface.blit(txt, (bg_rect.x + pad, bg_rect.y + pad))
+
+
+# ---------------------------------------------------------------------------
+# KB literal → cell helper
+# ---------------------------------------------------------------------------
+
+def _lit_cells_for_puzzle(lit, puzzle) -> list[tuple[int, int]]:
+    """Return the grid cells (row, col) to highlight for a CNF literal.
+
+    For cell-specific predicates the relevant cell(s) are returned directly.
+    For numeric ``Less`` / ``¬Less`` facts — which have no cell address — all
+    cells that border any inequality constraint are returned so the user can
+    see which constraints this ordering fact supports.
+    """
+    if lit is None:
+        return []
+    n, args = lit.name, lit.args
+    if n in ("Val", "NotVal", "Given", "ValidVal"):
+        return [(args[0], args[1])]
+    if n in ("LessH", "GreaterH"):
+        r, c = args[0], args[1]
+        return [(r, c), (r, c + 1)]
+    if n in ("LessV", "GreaterV"):
+        r, c = args[0], args[1]
+        return [(r, c), (r + 1, c)]
+    if n == "Less":
+        # Numeric ordering fact — highlight every cell adjacent to any
+        # inequality constraint to show which relations this fact supports.
+        seen: set[tuple[int, int]] = set()
+        cells: list[tuple[int, int]] = []
+        for c in puzzle.h_constraints:
+            for cell in (c.cell1, c.cell2):
+                if cell not in seen:
+                    seen.add(cell)
+                    cells.append(cell)
+        for c in puzzle.v_constraints:
+            for cell in (c.cell1, c.cell2):
+                if cell not in seen:
+                    seen.add(cell)
+                    cells.append(cell)
+        return cells
+    return []
 
 
 # ---------------------------------------------------------------------------

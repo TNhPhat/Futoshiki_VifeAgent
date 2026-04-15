@@ -53,6 +53,9 @@ class CNFGenerator:
         kb.add_clauses(Axioms.a13_col_surjection(N))
 
         # ── Inequality constraints ────────────────────────────────
+        # Assert each puzzle constraint as a unit fact so the KB panel
+        # can display and highlight LessH / GreaterH / LessV / GreaterV.
+        kb.add_clauses(Axioms.a_constraint_facts(puzzle))
         kb.add_clauses(Axioms.a5_vertical_less(N, puzzle))
         kb.add_clauses(Axioms.a6_vertical_greater(N, puzzle))
         kb.add_clauses(Axioms.a7_horizontal_less(N, puzzle))
