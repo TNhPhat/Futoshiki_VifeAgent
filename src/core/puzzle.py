@@ -13,7 +13,7 @@ class Puzzle:
     Immutable problem definition for a Futoshiki puzzle.
 
     Stores the initial grid clues and all inequality constraints.
-    This is the problem description, not the mutable solver state —
+    This is the problem description, not the mutable solver state --
     solvers receive a ``Puzzle`` and return a separate solution grid.
 
     Parameters
@@ -36,7 +36,7 @@ class Puzzle:
     h_constraints: list[InequalityConstraint]
     v_constraints: list[InequalityConstraint]
 
-    # Private lookup maps — keyed by the left/top cell (i, j)
+    # Private lookup maps -- keyed by the left/top cell (i, j)
     _h_map: dict[tuple[int, int], InequalityConstraint] = field(
         default_factory=dict, init=False, repr=False
     )
@@ -44,7 +44,7 @@ class Puzzle:
         default_factory=dict, init=False, repr=False
     )
 
-    # Cached cell lists — computed once in __post_init__, not constructor args
+    # Cached cell lists -- computed once in __post_init__, not constructor args
     _given_cells: list[tuple[int, int, int]] = field(
         default_factory=list, init=False, repr=False
     )

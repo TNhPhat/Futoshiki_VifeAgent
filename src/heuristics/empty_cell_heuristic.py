@@ -1,11 +1,11 @@
 """
-Heuristic h₁: Empty Cell Count.
+Heuristic h1: Empty Cell Count.
 
-The simplest admissible heuristic — counts unassigned cells.
+The simplest admissible heuristic -- counts unassigned cells.
 Admissible because each empty cell requires at least one assignment
 step, and the best case for each step is zero new violations.
 
-Verdict: ✅ Admissible, but weak — essentially makes A* behave like BFS.
+Verdict: [ok] Admissible, but weak -- essentially makes A* behave like BFS.
 """
 
 from __future__ import annotations
@@ -23,9 +23,9 @@ if TYPE_CHECKING:
 
 class EmptyCellHeuristic(BaseHeuristic):
     """
-    h₁(n) = number of unassigned cells.
+    h1(n) = number of unassigned cells.
 
-    Complexity: O(N²).
+    Complexity: O(N2).
     """
 
     def estimate(self, state: SearchState, puzzle: Puzzle) -> int:

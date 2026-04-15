@@ -94,7 +94,7 @@ def start_solve(state: GameState) -> None:
                 if grid_snapshot[r, c] != 0 and base[r, c] == 0
             ]
             if not newly_filled:
-                # Nothing changed visually — emit anyway so stats update.
+                # Nothing changed visually -- emit anyway so stats update.
                 _emit(grid_snapshot, is_bt=False)
             else:
                 # One step per newly filled cell.

@@ -131,7 +131,7 @@ class AStarEngine:
                             open_set, (child.f, counter, child),
                         )
 
-        return None  # exhausted search space — no solution
+        return None  # exhausted search space -- no solution
 
     # ------------------------------------------------------------------
     # Initial state construction

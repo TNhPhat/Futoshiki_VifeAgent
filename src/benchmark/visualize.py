@@ -17,13 +17,13 @@ _DIFF_ORDER = ["easy", "medium", "hard"]
 _DIFF_RANK = {d: i for i, d in enumerate(_DIFF_ORDER)}
 _DIFF_LABEL = {"easy": "Easy", "medium": "Medium", "hard": "Hard"}
 
-# Heatmap palette: smooth red (0) → light neutral centre → green (1)
+# Heatmap palette: smooth red (0) -> light neutral centre -> green (1)
 # diverging_palette(h_neg, h_pos) uses HSL hue 10 (warm red) and 133 (mid green),
 # routing through a near-white midpoint for a perceptually smooth gradient.
 _HEATMAP_CMAP = sns.diverging_palette(10, 133, s=75, l=50, as_cmap=True)
 
 
-# ─── data loading / preparation ───────────────────────────────────────────────
+# --- data loading / preparation -----------------------------------------------
 
 def _extract_difficulty(filename: str) -> str:
     m = _DIFF_RE.search(filename)
@@ -87,7 +87,7 @@ def _x_order(df: pd.DataFrame) -> list[str]:
     )
 
 
-# ─── line charts ──────────────────────────────────────────────────────────────
+# --- line charts --------------------------------------------------------------
 
 def _plot_line_chart(
     df: pd.DataFrame,
@@ -103,7 +103,7 @@ def _plot_line_chart(
 
     fig, ax = plt.subplots(figsize=(16, 6))
     for solver, color in zip(solvers, palette):
-        # reindex so missing puzzle configs become NaN — matplotlib will
+        # reindex so missing puzzle configs become NaN -- matplotlib will
         # naturally break (stop) the line there instead of connecting gaps.
         sub = (
             df[df["solver_name"] == solver]
@@ -146,7 +146,7 @@ def _plot_line_chart(
     _save_or_show(fig, output_path)
 
 
-# ─── heatmap ──────────────────────────────────────────────────────────────────
+# --- heatmap ------------------------------------------------------------------
 
 def _plot_heatmap(df: pd.DataFrame, output_path: Path | None) -> None:
     x_order = _x_order(df)
@@ -208,7 +208,7 @@ def _plot_heatmap(df: pd.DataFrame, output_path: Path | None) -> None:
     _save_or_show(fig, output_path)
 
 
-# ─── LaTeX tables ─────────────────────────────────────────────────────────────
+# --- LaTeX tables -------------------------------------------------------------
 
 def _tex_escape(text: str) -> str:
     """Escape characters that are special in LaTeX."""
@@ -333,7 +333,7 @@ def generate_latex_tables(data_dir: Path, output_dir: Path) -> None:
             continue
 
         solver_name = str(df["solver_name"].iloc[0])
-        caption = f"Benchmark results — {solver_name}"
+        caption = f"Benchmark results -- {solver_name}"
         label = "tab:" + re.sub(r"[^a-z0-9]", "_", solver_name.lower()).strip("_")
 
         body = _build_latex_table(df, caption=caption, label=label)
@@ -344,7 +344,7 @@ def generate_latex_tables(data_dir: Path, output_dir: Path) -> None:
         print(f"Saved: {out_path}")
 
 
-# ─── helpers ──────────────────────────────────────────────────────────────────
+# --- helpers ------------------------------------------------------------------
 
 def _save_or_show(fig: plt.Figure, output_path: Path | None) -> None:
     if output_path:
@@ -355,7 +355,7 @@ def _save_or_show(fig: plt.Figure, output_path: Path | None) -> None:
     plt.close(fig)
 
 
-# ─── public entry point ───────────────────────────────────────────────────────
+# --- public entry point -------------------------------------------------------
 
 def visualize(data_dir: Path, output_dir: Path | None = None) -> None:
     df_raw = load_all_csvs(data_dir)

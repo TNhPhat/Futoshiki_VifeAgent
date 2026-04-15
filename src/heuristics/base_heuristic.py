@@ -25,7 +25,7 @@ class BaseHeuristic(ABC):
     @abstractmethod
     def estimate(self, state: SearchState, puzzle: Puzzle) -> int:
         """
-        Return h(n) — an admissible heuristic estimate.
+        Return h(n) -- an admissible heuristic estimate.
 
         Parameters
         ----------

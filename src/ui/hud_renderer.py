@@ -287,7 +287,7 @@ class HudRenderer(BaseRenderer):
                 status = "Solved!" if state.solve_succeeded else "No solution"
                 colour = (0, 140, 0) if state.solve_succeeded else (200, 30, 30)
             elif state.is_solving():
-                status = "Solving…"
+                status = "Solving..."
                 colour = T.CLR_LABEL
             else:
                 status = "Paused"
@@ -327,13 +327,13 @@ class HudRenderer(BaseRenderer):
 
         # Load from corpus button
         load_rect = pygame.Rect(px, py, pw, 26)
-        _draw_button(surface, load_rect, "Load Puzzle…", fnt_btn,
+        _draw_button(surface, load_rect, "Load Puzzle...", fnt_btn,
                      active=state.show_puzzle_list,
                      hover=load_rect.collidepoint(mouse_pos))
         state._hud_rects["load_puzzle"] = load_rect
         py += 32
 
-        # Generate section — size row
+        # Generate section -- size row
         _draw_label(surface, fnt_lbl, "Generate  size:", px, py)
         py += 16
         sizes = [4, 5, 6, 7, 8, 9]
@@ -391,7 +391,7 @@ class HudRenderer(BaseRenderer):
 
         kb = state.cnf_kb
 
-        # ── Header ───────────────────────────────────────────────────
+        # -- Header ---------------------------------------------------
         _draw_label(surface, fnt_val, "CNF KNOWLEDGE BASE", px, py, T.CLR_LABEL_TITLE)
         help_rect = pygame.Rect(r.right - SIDE_PANEL_PADDING - 22, py, 22, 20)
         _draw_button(surface, help_rect, "?", fnt_btn,
@@ -420,99 +420,163 @@ class HudRenderer(BaseRenderer):
                          (px, py), (r.right - SIDE_PANEL_PADDING, py), 1)
         py += 8
 
-        # ── FACTS header + scroll arrows ─────────────────────────────
-        facts = sorted(kb.facts, key=lambda l: (l.name, l.args, l.negated))
+        # -- FACTS / RULES toggle tabs ---------------------------------
+        tab_w = (pw - 4) // 2
+        facts_tab = pygame.Rect(px,           py, tab_w, 22)
+        rules_tab = pygame.Rect(px + tab_w + 4, py, pw - tab_w - 4, 22)
+        _draw_button(surface, facts_tab, "FACTS", fnt_btn,
+                     active=(state.kb_panel_view == "facts"),
+                     hover=facts_tab.collidepoint(mouse_pos))
+        _draw_button(surface, rules_tab, "RULES", fnt_btn,
+                     active=(state.kb_panel_view == "rules"),
+                     hover=rules_tab.collidepoint(mouse_pos))
+        state._hud_rects["kb_tab_facts"] = facts_tab
+        state._hud_rects["kb_tab_rules"] = rules_tab
+        py += 28
 
-        _draw_label(surface, fnt_val, "FACTS", px, py, T.CLR_LABEL_TITLE)
-
-        arrow_w, arrow_h = 18, 17
-        down_rect = pygame.Rect(r.right - SIDE_PANEL_PADDING - arrow_w,
-                                py, arrow_w, arrow_h)
-        up_rect   = pygame.Rect(down_rect.x - arrow_w - 2, py, arrow_w, arrow_h)
-
-        # Reserve bottom info-box: separator + header + 3 text lines
-        info_box_h   = 12 + 18 + 3 * 15 + 8   # ~83 px
+        # Reserve bottom info-box
+        info_box_h   = 12 + 18 + 3 * 15 + 8
         info_box_top = r.bottom - SIDE_PANEL_PADDING - info_box_h
 
-        row_h = 20
-        q_w   = 16
-        facts_start_y = py + arrow_h + 4
-        available_h   = info_box_top - facts_start_y - 4
-        visible_rows  = max(1, available_h // row_h)
+        row_h  = 20
+        q_w    = 16
+        list_start_y = py + 21   # after list-header + arrows row
+        available_h  = info_box_top - list_start_y - 4
+        visible_rows = max(1, available_h // row_h)
 
-        max_scroll = max(0, len(facts) - visible_rows)
-        scroll = max(0, min(state.cnf_kb_scroll, max_scroll))
-        state.cnf_kb_scroll = scroll
+        if state.kb_panel_view == "facts":
+            # -- FACTS list -------------------------------------------
+            facts = sorted(kb.facts, key=lambda l: (l.name, l.args, l.negated))
+            _draw_label(surface, fnt_val, "FACTS", px, py, T.CLR_LABEL_TITLE)
 
-        if facts:
-            end_idx  = min(scroll + visible_rows, len(facts))
-            pos_txt  = fnt_lbl.render(f"{scroll+1}\u2013{end_idx}/{len(facts)}",
-                                      True, T.CLR_LABEL)
-            surface.blit(pos_txt, (up_rect.x - pos_txt.get_width() - 4, py + 2))
+            arrow_w, arrow_h = 18, 17
+            down_rect = pygame.Rect(r.right - SIDE_PANEL_PADDING - arrow_w, py, arrow_w, arrow_h)
+            up_rect   = pygame.Rect(down_rect.x - arrow_w - 2, py, arrow_w, arrow_h)
 
-        can_up   = scroll > 0
-        can_down = scroll < max_scroll
-        _draw_button(surface, up_rect,   "^", fnt_btn,
-                     disabled=not can_up,
-                     hover=up_rect.collidepoint(mouse_pos) and can_up)
-        _draw_button(surface, down_rect, "v", fnt_btn,
-                     disabled=not can_down,
-                     hover=down_rect.collidepoint(mouse_pos) and can_down)
-        state._hud_rects["cnf_kb_up"]   = up_rect
-        state._hud_rects["cnf_kb_down"] = down_rect
-        py = facts_start_y
+            max_scroll = max(0, len(facts) - visible_rows)
+            scroll = max(0, min(state.cnf_kb_scroll, max_scroll))
+            state.cnf_kb_scroll = scroll
 
-        # ── Scrollable fact rows ──────────────────────────────────────
-        fact_rows: list = []
-        if not facts:
-            _draw_label(surface, fnt_lbl, "(no unit facts)", px + 4, py)
+            if facts:
+                end_idx = min(scroll + visible_rows, len(facts))
+                pos_txt = fnt_lbl.render(f"{scroll+1}\u2013{end_idx}/{len(facts)}",
+                                         True, T.CLR_LABEL)
+                surface.blit(pos_txt, (up_rect.x - pos_txt.get_width() - 4, py + 2))
+
+            _draw_button(surface, up_rect,   "^", fnt_btn,
+                         disabled=(scroll == 0),
+                         hover=up_rect.collidepoint(mouse_pos) and scroll > 0)
+            _draw_button(surface, down_rect, "v", fnt_btn,
+                         disabled=(scroll >= max_scroll),
+                         hover=down_rect.collidepoint(mouse_pos) and scroll < max_scroll)
+            state._hud_rects["cnf_kb_up"]   = up_rect
+            state._hud_rects["cnf_kb_down"] = down_rect
+            py = list_start_y
+
+            fact_rows: list = []
+            if not facts:
+                _draw_label(surface, fnt_lbl, "(no unit facts)", px + 4, py)
+            else:
+                for lit in facts[scroll : scroll + visible_rows]:
+                    row_rect = pygame.Rect(px, py, pw - q_w - 4, row_h)
+                    q_rect   = pygame.Rect(r.right - SIDE_PANEL_PADDING - q_w,
+                                           py + 2, q_w, row_h - 4)
+                    is_hover = row_rect.collidepoint(mouse_pos) or q_rect.collidepoint(mouse_pos)
+                    if is_hover:
+                        pygame.draw.rect(surface, T.CLR_BTN_HOVER, row_rect, border_radius=3)
+                        fg = T.CLR_BTN_TEXT
+                    else:
+                        fg = T.CLR_LABEL
+                    sign     = "\u00ac" if lit.negated else " "
+                    args_str = ",".join(str(a) for a in lit.args)
+                    text     = f"{sign}{lit.name}({args_str})"
+                    if len(text) > 22:
+                        text = text[:21] + "\u2026"
+                    lbl = fnt_lbl.render(text, True, fg)
+                    surface.blit(lbl, (px + 4, py + (row_h - lbl.get_height()) // 2))
+                    _draw_button(surface, q_rect, "?", fnt_btn,
+                                 hover=q_rect.collidepoint(mouse_pos))
+                    fact_rows.append((row_rect, q_rect, lit))
+                    py += row_h
+            state._hud_rects["_kb_fact_rows"] = fact_rows
+            state._hud_rects["_kb_rule_rows"] = []
+
         else:
-            for lit in facts[scroll : scroll + visible_rows]:
-                row_rect = pygame.Rect(px, py, pw - q_w - 4, row_h)
-                q_rect   = pygame.Rect(r.right - SIDE_PANEL_PADDING - q_w,
-                                       py + 2, q_w, row_h - 4)
+            # -- RULES list -------------------------------------------
+            rules = [c for c in kb.clauses if len(c) > 1]
+            _draw_label(surface, fnt_val, "RULES", px, py, T.CLR_LABEL_TITLE)
 
-                is_hover = row_rect.collidepoint(mouse_pos) or q_rect.collidepoint(mouse_pos)
+            arrow_w, arrow_h = 18, 17
+            down_rect = pygame.Rect(r.right - SIDE_PANEL_PADDING - arrow_w, py, arrow_w, arrow_h)
+            up_rect   = pygame.Rect(down_rect.x - arrow_w - 2, py, arrow_w, arrow_h)
 
-                if is_hover:
-                    pygame.draw.rect(surface, T.CLR_BTN_HOVER, row_rect, border_radius=3)
-                    fg = T.CLR_BTN_TEXT
-                else:
-                    fg = T.CLR_LABEL
+            max_scroll = max(0, len(rules) - visible_rows)
+            scroll = max(0, min(state.kb_rules_scroll, max_scroll))
+            state.kb_rules_scroll = scroll
 
-                sign     = "\u00ac" if lit.negated else " "  # ¬ or space
-                args_str = ",".join(str(a) for a in lit.args)
-                text     = f"{sign}{lit.name}({args_str})"
-                if len(text) > 22:
-                    text = text[:21] + "\u2026"
-                lbl = fnt_lbl.render(text, True, fg)
-                surface.blit(lbl, (px + 4, py + (row_h - lbl.get_height()) // 2))
+            if rules:
+                end_idx = min(scroll + visible_rows, len(rules))
+                pos_txt = fnt_lbl.render(f"{scroll+1}\u2013{end_idx}/{len(rules)}",
+                                         True, T.CLR_LABEL)
+                surface.blit(pos_txt, (up_rect.x - pos_txt.get_width() - 4, py + 2))
 
-                _draw_button(surface, q_rect, "?", fnt_btn,
-                             hover=q_rect.collidepoint(mouse_pos))
-                fact_rows.append((row_rect, q_rect, lit))
-                py += row_h
+            _draw_button(surface, up_rect,   "^", fnt_btn,
+                         disabled=(scroll == 0),
+                         hover=up_rect.collidepoint(mouse_pos) and scroll > 0)
+            _draw_button(surface, down_rect, "v", fnt_btn,
+                         disabled=(scroll >= max_scroll),
+                         hover=down_rect.collidepoint(mouse_pos) and scroll < max_scroll)
+            state._hud_rects["cnf_kb_up"]   = up_rect
+            state._hud_rects["cnf_kb_down"] = down_rect
+            py = list_start_y
 
-        state._hud_rects["_kb_fact_rows"] = fact_rows
+            rule_rows: list = []
+            if not rules:
+                _draw_label(surface, fnt_lbl, "(no multi-literal clauses)", px + 4, py)
+            else:
+                for clause in rules[scroll : scroll + visible_rows]:
+                    row_rect = pygame.Rect(px, py, pw, row_h)
+                    is_hover = (row_rect.collidepoint(mouse_pos) or
+                                clause is state.kb_hovered_clause)
+                    if is_hover:
+                        pygame.draw.rect(surface, T.CLR_BTN_HOVER, row_rect, border_radius=3)
+                        fg = T.CLR_BTN_TEXT
+                    else:
+                        fg = T.CLR_LABEL
+                    text = _format_clause(clause)
+                    lbl = fnt_lbl.render(text, True, fg)
+                    surface.blit(lbl, (px + 4, py + (row_h - lbl.get_height()) // 2))
+                    rule_rows.append((row_rect, clause))
+                    py += row_h
+            state._hud_rects["_kb_rule_rows"] = rule_rows
+            state._hud_rects["_kb_fact_rows"] = []
 
-        # ── Info / explanation box ────────────────────────────────────
+        # -- Info / explanation box ------------------------------------
         pygame.draw.line(surface, T.CLR_PANEL_BORDER,
                          (px, info_box_top), (r.right - SIDE_PANEL_PADDING, info_box_top), 1)
         ipy = info_box_top + 8
 
-        lit_to_explain = state.kb_selected_lit or state.kb_hovered_lit
-        if lit_to_explain is not None:
-            _draw_label(surface, fnt_val, "ABOUT", px, ipy, T.CLR_LABEL_TITLE)
+        if state.kb_hovered_clause is not None:
+            _draw_label(surface, fnt_val, "CLAUSE", px, ipy, T.CLR_LABEL_TITLE)
             ipy += 18
-            for line in _explain_literal(lit_to_explain):
+            for line in _explain_clause(state.kb_hovered_clause):
                 _draw_label(surface, fnt_lbl, line, px + 4, ipy)
                 ipy += 15
         else:
-            _draw_label(surface, fnt_lbl, "Hover a fact to highlight", px, ipy)
-            ipy += 15
-            _draw_label(surface, fnt_lbl, "its cells on the grid.", px, ipy)
-            ipy += 15
-            _draw_label(surface, fnt_lbl, "Click [?] to pin an explanation.", px, ipy)
+            lit_to_explain = state.kb_selected_lit or state.kb_hovered_lit
+            if lit_to_explain is not None:
+                _draw_label(surface, fnt_val, "ABOUT", px, ipy, T.CLR_LABEL_TITLE)
+                ipy += 18
+                for line in _explain_literal(lit_to_explain):
+                    _draw_label(surface, fnt_lbl, line, px + 4, ipy)
+                    ipy += 15
+            else:
+                view = state.kb_panel_view
+                _draw_label(surface, fnt_lbl,
+                            "Hover a fact/rule to highlight" if view == "facts"
+                            else "Hover a rule to highlight", px, ipy)
+                ipy += 15
+                _draw_label(surface, fnt_lbl, "its cells on the grid.", px, ipy)
 
     # ------------------------------------------------------------------
     # Play panel
@@ -637,7 +701,7 @@ class HudRenderer(BaseRenderer):
         fnt_btn = T.font("btn")
         row_h = 26
         pad = 4
-        # solver_names dict preserves insertion order — use it as the item list
+        # solver_names dict preserves insertion order -- use it as the item list
         items = list(solver_names.items())
         overlay_w = anchor.width
         overlay_h = len(items) * row_h + 2 * pad
@@ -794,13 +858,96 @@ class HudRenderer(BaseRenderer):
         fnt_btn = T.font("btn")
 
         py = oy + 12
-        _draw_label(surface, fnt_val, "Generating puzzle…", ox + 12, py, T.CLR_LABEL_TITLE)
+        _draw_label(surface, fnt_val, "Generating puzzle...", ox + 12, py, T.CLR_LABEL_TITLE)
         py += 28
         _draw_label(surface, T.font("hud_label"), "This may take a few seconds.", ox + 12, py)
 
 
 # ---------------------------------------------------------------------------
-# KB popup content — static reference card
+# Clause formatting helpers
+# ---------------------------------------------------------------------------
+
+def _format_lit_short(lit) -> str:
+    """Compact single-literal string for clause display rows."""
+    sign = "\u00ac" if lit.negated else ""
+    n, args = lit.name, lit.args
+    if n in ("Val", "NotVal", "Given", "ValidVal"):
+        return f"{sign}V({args[0]},{args[1]},{args[2]})"
+    if n in ("LessH", "GreaterH", "LessV", "GreaterV"):
+        return f"{sign}{n}({args[0]},{args[1]})"
+    if n == "Less":
+        return f"{sign}L({args[0]},{args[1]})"
+    args_str = ",".join(str(a) for a in args)
+    return f"{sign}{n}({args_str})"
+
+
+def _format_clause(clause) -> str:
+    """One-line representation of a multi-literal clause, truncated to ~30 chars."""
+    parts = [_format_lit_short(l) for l in clause]
+    joined = " \u2228 ".join(parts)   # |
+    if len(joined) > 30:
+        joined = joined[:28] + "\u2026"
+    return joined
+
+
+def _explain_clause(clause) -> list[str]:
+    """Return 1-4 human-readable lines describing a multi-literal clause."""
+    lits = clause
+    n = len(lits)
+
+    # Identify cells involved
+    cells = []
+    seen: set = set()
+    for lit in lits:
+        na, args = lit.name, lit.args
+        if na in ("Val", "NotVal", "Given"):
+            c = (args[0], args[1])
+            if c not in seen:
+                seen.add(c); cells.append(c)
+
+    # Classify by structure
+    names = [l.name for l in lits]
+
+    if set(names) == {"Val"} or (all(l.negated for l in lits) and
+                                  all(l.name in ("Val", "NotVal") for l in lits)):
+        if n == 2 and len(cells) == 2 and lits[0].args[2] == lits[1].args[2]:
+            r, c1 = cells[0]; _, c2 = cells[1]
+            if c1 == c2:
+                return [f"Col {c1+1}: value {lits[0].args[2]}",
+                        "cannot appear twice."]
+            elif cells[0][0] == cells[1][0]:
+                return [f"Row {r+1}: value {lits[0].args[2]}",
+                        "cannot appear twice."]
+        if n == 2 and len(cells) == 2:
+            r, c = cells[0]
+            return [f"Cell ({r+1},{c+1}) cannot hold",
+                    f"both values at once."]
+
+    if "Less" in names and n == 3:
+        val_lits = [l for l in lits if l.name in ("Val", "NotVal") and l.negated]
+        less_lit = next((l for l in lits if l.name == "Less"), None)
+        if len(val_lits) == 2 and less_lit:
+            (r1,c1,v1), (r2,c2,v2) = val_lits[0].args, val_lits[1].args
+            a, b = less_lit.args
+            return [f"If ({r1+1},{c1+1})={v1} and ({r2+1},{c2+1})={v2}",
+                    f"then {a}<{b} must hold",
+                    f"(inequality enforcement)."]
+
+    if n >= 2 and all(l.name == "Val" and not l.negated for l in lits):
+        if cells:
+            r = cells[0][0]
+            v = lits[0].args[2]
+            return [f"Value {v} must appear",
+                    f"somewhere in row/col {r+1}."]
+
+    # Generic fallback
+    cell_strs = ", ".join(f"({r+1},{c+1})" for r,c in cells[:3])
+    return [f"{n}-literal clause",
+            f"cells: {cell_strs}" if cell_strs else "no cell refs"]
+
+
+# ---------------------------------------------------------------------------
+# KB popup content -- static reference card
 # ---------------------------------------------------------------------------
 
 _KB_POPUP_SECTIONS = [

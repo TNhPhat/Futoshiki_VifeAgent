@@ -71,8 +71,14 @@ class GameState:
     kb_selected_lit: object = None  # Literal | None
     # When set, the KB reference popup is shown over the grid.
     kb_show_popup: bool = False
-    # Grid cell (row, col) under the mouse in KB mode — drives the domain tooltip.
+    # Grid cell (row, col) under the mouse in KB mode -- drives the domain tooltip.
     kb_hovered_cell: object = None  # tuple[int,int] | None
+    # Which sub-view is shown in the KB panel: "facts" (unit clauses) or "rules" (multi-literal).
+    kb_panel_view: str = "facts"
+    # Scroll offset for the rules list.
+    kb_rules_scroll: int = 0
+    # Multi-literal clause currently hovered in the rules view.
+    kb_hovered_clause: object = None  # list[Literal] | None
 
     # ------------------------------------------------------------------
     # UI interaction state
@@ -101,17 +107,17 @@ class GameState:
     # Auto-advance when True; paused when False.
     is_playing: bool = False
 
-    # Steps per second (1.0 – 20.0).  The worker thread sleeps 1/speed
+    # Steps per second (1.0 - 20.0).  The worker thread sleeps 1/speed
     # seconds between emitting steps, so this directly controls playback pace.
     speed: float = 1.0
 
     # The grid currently displayed in SOLVE mode.
     current_display_grid: np.ndarray | None = None
 
-    # Cells filled by the solver (blue tint) — set of (row, col).
+    # Cells filled by the solver (blue tint) -- set of (row, col).
     solver_cells: set[tuple[int, int]] = field(default_factory=set)
 
-    # Backtrack flash timers: cell → remaining seconds.
+    # Backtrack flash timers: cell -> remaining seconds.
     backtrack_timers: dict[tuple[int, int], float] = field(default_factory=dict)
 
     # Solve stats for the HUD.
@@ -150,7 +156,7 @@ class GameState:
     # Shake animation (invalid note attempt)
     # ------------------------------------------------------------------
 
-    # cell → seconds remaining for shake animation
+    # cell -> seconds remaining for shake animation
     shake_timers: dict[tuple[int, int], float] = field(default_factory=dict)
 
     # ------------------------------------------------------------------

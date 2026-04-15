@@ -24,7 +24,7 @@ TITLE_BAR_H: int = 50
 
 TITLE_BAR_RECT = pygame.Rect(0, 0, SCREEN_W, TITLE_BAR_H)
 
-# Mode-tab buttons (Play / Solve / Menu) — positioned in the title bar
+# Mode-tab buttons (Play / Solve / Menu) -- positioned in the title bar
 TAB_W:  int = 80
 TAB_H:  int = 32
 TAB_Y:  int = (TITLE_BAR_H - TAB_H) // 2

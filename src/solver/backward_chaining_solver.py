@@ -83,7 +83,7 @@ class BackwardChaining(BaseSolver):
         The substitution grows monotonically during proof (SLD never removes
         bindings on a single path). When a branch fails and the engine
         backtracks to try an alternative, the new partial substitution may
-        have fewer resolved cell variables → the grid will have fewer filled
+        have fewer resolved cell variables -> the grid will have fewer filled
         cells, which on_step's caller detects as a backtrack.
         """
         base_grid = puzzle.grid.copy()

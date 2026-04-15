@@ -26,7 +26,7 @@ class SearchState:
         For each *unassigned* cell ``(i, j)`` the set of values still
         considered possible.  Assigned cells are absent from this dict.
     g : int
-        Actual cost — number of constraint violations in the current
+        Actual cost -- number of constraint violations in the current
         partial assignment.
     h : int
         Heuristic estimate of remaining cost to reach a goal state.

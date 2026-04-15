@@ -5,9 +5,10 @@ Hybrid solver: Forward Chaining propagation, then AC3 + Backward Chaining.
 from __future__ import annotations
 
 from core.puzzle import Puzzle
+from solver.backward_chaining_solver import BackwardChaining
 from utils import Stats
 
-from .ac3_backward_chaining_solver import AC3BackwardChaining
+# from .ac3_backward_chaining_solver import AC3BackwardChaining
 from .base_solver import BaseSolver
 from .forward_chaining_solver import ForwardChaining
 
@@ -15,7 +16,7 @@ from .forward_chaining_solver import ForwardChaining
 class ForwardThenAC3BackwardChaining(BaseSolver):
     def __init__(self):
         self._forward = ForwardChaining()
-        self._ac3_backward = AC3BackwardChaining()
+        self._ac3_backward = BackwardChaining()
 
     def solve(self, puzzle: Puzzle, on_step=None) -> tuple[Puzzle | None, Stats]:
         initial_unsolved_mask = puzzle.grid == 0

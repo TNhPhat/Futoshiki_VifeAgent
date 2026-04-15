@@ -83,7 +83,7 @@ class BackwardChainingEngine:
         Core SLD resolution algorithm (generator-based for backtracking).
 
         Args:
-            goals:   Goal list (resolvent) — leftmost selected first.
+            goals:   Goal list (resolvent) -- leftmost selected first.
             subst:   Current substitution (answer substitution).
             on_step: Optional callable(subst) invoked after each successful
                      unification, with the extended substitution.
