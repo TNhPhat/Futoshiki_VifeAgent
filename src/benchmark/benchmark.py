@@ -10,13 +10,12 @@ import numpy as np
 
 from futoshiki_vifeagent.core import Parser
 from futoshiki_vifeagent.solver import (
-    AC3BackwardChaining,
     AStarSolver,
     BackwardChaining,
     BacktrackingForwardChaining,
     BruteForceSolver,
     ForwardChaining,
-    ForwardThenAC3BackwardChaining,
+    ForwardThenBackwardChaining,
 )
 from heuristics import (
     EmptyCellHeuristic,
@@ -46,10 +45,9 @@ class BenchmarkRow:
 def _solver_registry() -> Dict[str, BaseSolver | type[BaseSolver]]:
     return {
         "forward_chaining": ForwardChaining,
-        "forward_then_ac3_backward_chaining": ForwardThenAC3BackwardChaining,
+        "forward_then_backward_chaining": ForwardThenBackwardChaining,
         "backtracking_forward_chaining": BacktrackingForwardChaining,
         "backward_chaining": BackwardChaining,
-        "ac3_backward_chaining": AC3BackwardChaining,
         "brute_force": BruteForceSolver,
         "astar_h1": AStarSolver(EmptyCellHeuristic()),
         "astar_h2": AStarSolver(DomainSizeHeuristic()),
@@ -229,9 +227,9 @@ def main(argv: list[str] | None = None) -> int:
         "--solver",
         required=True,
         help=(
-            "Solver key: forward_chaining, forward_then_ac3_backward_chaining, "
+            "Solver key: forward_chaining, forward_then_backward_chaining, "
             "backtracking_forward_chaining, "
-            "backward_chaining, ac3_backward_chaining, brute_force, "
+            "backward_chaining, brute_force, "
             "astar_h1, astar_h2, astar_h3, astar_h4, all"
         ),
     )

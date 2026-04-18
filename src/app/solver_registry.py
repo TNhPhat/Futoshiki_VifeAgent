@@ -8,13 +8,12 @@ from heuristics.domain_size_heuristic import DomainSizeHeuristic
 from heuristics.empty_cell_heuristic import EmptyCellHeuristic
 from heuristics.min_conflicts_heuristic import MinConflictsHeuristic
 from solver import (
-    AC3BackwardChaining,
     AStarSolver,
     BackwardChaining,
     BacktrackingForwardChaining,
     BruteForceSolver,
     ForwardChaining,
-    ForwardThenAC3BackwardChaining,
+    ForwardThenBackwardChaining,
 )
 
 
@@ -32,10 +31,8 @@ def make_solver(name: str):
         return ForwardChaining()
     if name == "backward_chaining":
         return BackwardChaining()
-    if name == "ac3_backward_chaining":
-        return AC3BackwardChaining()
-    if name == "forward_then_ac3":
-        return ForwardThenAC3BackwardChaining()
+    if name == "forward_then_backward":
+        return ForwardThenBackwardChaining()
     if name == "btfc":
         return BacktrackingForwardChaining()
     if name == "brute_force":
@@ -50,8 +47,7 @@ SOLVER_CYCLE = [
     "astar_h4",
     "forward_chaining",
     "btfc",
-    "forward_then_ac3",
+    "forward_then_backward",
     "backward_chaining",
-    "ac3_backward_chaining",
     "brute_force",
 ]

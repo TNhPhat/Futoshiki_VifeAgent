@@ -225,9 +225,8 @@ class HudRenderer(BaseRenderer):
             "astar_h4": "A* h4 (AC-3 domain)",
             "forward_chaining": "Forward Chaining",
             "btfc": "Backtrack + Fwd Chain",
-            "forward_then_ac3": "FC -> AC3 + BC",
+            "forward_then_backward": "FC -> Backward Chain",
             "backward_chaining": "Backward Chaining",
-            "ac3_backward_chaining": "AC3 + Backward Chain",
             "brute_force": "Brute Force",
         }
         display_name = solver_names.get(state.solver_name, state.solver_name)

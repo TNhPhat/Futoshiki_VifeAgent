@@ -17,8 +17,8 @@ from app.solver_registry import make_solver
 # Solvers that support live animation via the on_step callback.
 _ANIMATED_SOLVERS = {
     "astar_h1", "astar_h2", "astar_h3", "astar_h4",
-    "forward_chaining", "btfc", "brute_force", "forward_then_ac3",
-    "backward_chaining", "ac3_backward_chaining",
+    "forward_chaining", "btfc", "brute_force", "forward_then_backward",
+    "backward_chaining",
 }
 
 

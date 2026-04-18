@@ -1,7 +1,7 @@
 # Futoshiki_VifeAgent
 
 Futoshiki solver and benchmark suite with multiple solving strategies:
-forward chaining, backward chaining, AC-3 hybrids, brute force, and A*.
+forward chaining, backward chaining, brute force, and A*.
 
 ## Concise project report
 
