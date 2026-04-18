@@ -28,9 +28,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--solver",
         default="backward_chaining",
         help=(
-            "Solver key: forward_chaining, forward_then_ac3_backward_chaining, "
+            "Solver key: forward_chaining, forward_then_backward_chaining, "
             "backtracking_forward_chaining, "
-            "backward_chaining, ac3_backward_chaining, brute_force, "
+            "backward_chaining, brute_force, "
             "astar_h1, astar_h2, astar_h3"
         ),
     )

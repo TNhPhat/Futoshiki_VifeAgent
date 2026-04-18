@@ -24,17 +24,23 @@ class ConstraintRenderer(BaseRenderer):
         fnt     = T.font("constraint")
         fnt_hl  = T.font("constraint")   # same size, different colour below
 
-        # Determine which literal (if any) to highlight in KB mode.
-        hl_lit = None
+        # Determine highlight source in KB mode.
+        hl_lit    = None
+        hl_clause = None
         if state.mode == AppMode.KB:
-            hl_lit = state.kb_hovered_lit or state.kb_selected_lit
+            hl_clause = state.kb_hovered_clause
+            if hl_clause is None:
+                hl_lit = state.kb_hovered_lit or state.kb_selected_lit
 
         # Horizontal constraints
         for constraint in puzzle.h_constraints:
             i, j = constraint.cell1
             gap_r  = h_gap_rect(i, j, grid_rect, cell_size, gap)
             symbol = constraint.direction  # '<' or '>'
-            highlighted = _constraint_matches(hl_lit, "H", i, j, symbol)
+            if hl_clause is not None:
+                highlighted = _clause_constraint_matches(hl_clause, "H", i, j, symbol)
+            else:
+                highlighted = _constraint_matches(hl_lit, "H", i, j, symbol)
             self._draw_symbol(surface, fnt, symbol, gap_r, highlighted)
 
         # Vertical constraints
@@ -42,8 +48,12 @@ class ConstraintRenderer(BaseRenderer):
             i, j = constraint.cell1
             gap_r  = v_gap_rect(i, j, grid_rect, cell_size, gap)
             symbol = "^" if constraint.direction == "<" else "v"
-            highlighted = _constraint_matches(hl_lit, "V", i, j,
-                                              constraint.direction)
+            if hl_clause is not None:
+                highlighted = _clause_constraint_matches(hl_clause, "V", i, j,
+                                                         constraint.direction)
+            else:
+                highlighted = _constraint_matches(hl_lit, "V", i, j,
+                                                  constraint.direction)
             self._draw_symbol(surface, fnt, symbol, gap_r, highlighted)
 
     @staticmethod
@@ -65,9 +75,6 @@ def _constraint_matches(hl_lit, axis: str, i: int, j: int,
     if hl_lit is None:
         return False
     n, args = hl_lit.name, hl_lit.args
-    # Numeric Less/¬Less facts support ALL inequality constraints.
-    if n == "Less":
-        return True
     if axis == "H":
         if n == "LessH"    and args == (i, j) and direction == "<": return True
         if n == "GreaterH" and args == (i, j) and direction == ">": return True
@@ -75,3 +82,36 @@ def _constraint_matches(hl_lit, axis: str, i: int, j: int,
         if n == "LessV"    and args == (i, j) and direction == "<": return True
         if n == "GreaterV" and args == (i, j) and direction == ">": return True
     return False
+
+
+def _clause_constraint_matches(clause, axis: str, i: int, j: int,
+                                direction: str) -> bool:
+    """Return True if a multi-literal clause is related to constraint (axis,i,j).
+
+    A clause is considered related when it contains a LessH/GreaterH/LessV/GreaterV
+    literal that names this constraint, OR when it references both cells that the
+    constraint connects via Val/NotVal literals (e.g. A5-A8 and A16 clauses).
+    """
+    if axis == "H":
+        cell_a, cell_b = (i, j), (i, j + 1)
+    else:
+        cell_a, cell_b = (i, j), (i + 1, j)
+
+    has_a = has_b = False
+    for lit in clause:
+        n, args = lit.name, lit.args
+        # Direct constraint literal
+        if axis == "H":
+            if n == "LessH"    and args == (i, j) and direction == "<": return True
+            if n == "GreaterH" and args == (i, j) and direction == ">": return True
+        else:
+            if n == "LessV"    and args == (i, j) and direction == "<": return True
+            if n == "GreaterV" and args == (i, j) and direction == ">": return True
+        # Val/NotVal referencing one of the two constraint cells
+        if n in ("Val", "NotVal", "Given"):
+            cell = (args[0], args[1])
+            if cell == cell_a:
+                has_a = True
+            elif cell == cell_b:
+                has_b = True
+    return has_a and has_b

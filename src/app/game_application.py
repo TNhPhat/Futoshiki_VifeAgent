@@ -2,9 +2,9 @@
 GameApplication: main pygame event loop and application controller.
 
 Owns the GameState and coordinates the three main subsystems:
-  - InputHandler  — translates pygame events into state changes
-  - solve_worker  — runs solvers in a background thread
-  - CompositeRenderer — draws everything each frame
+  - InputHandler  -- translates pygame events into state changes
+  - solve_worker  -- runs solvers in a background thread
+  - CompositeRenderer -- draws everything each frame
 """
 from __future__ import annotations
 
@@ -201,9 +201,10 @@ class GameApplication:
             state.stop_event.set()
 
         if new_mode != AppMode.KB:
-            state.kb_hovered_lit  = None
-            state.kb_selected_lit = None
-            state.kb_hovered_cell = None
+            state.kb_hovered_lit    = None
+            state.kb_selected_lit   = None
+            state.kb_hovered_cell   = None
+            state.kb_hovered_clause = None
 
         state.mode = new_mode
 

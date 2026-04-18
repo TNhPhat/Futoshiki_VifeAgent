@@ -19,7 +19,7 @@ class Literal:
     args : tuple[int, ...]
         Ground arguments (e.g. ``(0, 1, 3)`` for Val(0,1,3)).
     negated : bool
-        ``True`` if this literal is negated (¬).
+        ``True`` if this literal is negated (~).
     """
 
     name: str
@@ -31,7 +31,7 @@ class Literal:
         Return the negation of this literal.
 
         Uses the ``~`` operator so that ``~Val(0, 0, 1)`` produces
-        ``¬Val(0,0,1)`` and ``~~lit`` restores the original.
+        ``~Val(0,0,1)`` and ``~~lit`` restores the original.
 
         Returns
         -------
@@ -51,9 +51,9 @@ class Literal:
         Returns
         -------
         str
-            e.g. ``"Val(0,0,1)"`` or ``"¬Val(0,0,1)"``.
+            e.g. ``"Val(0,0,1)"`` or ``"~Val(0,0,1)"``.
         """
-        prefix = "¬" if self.negated else ""
+        prefix = "~" if self.negated else ""
         args_str = ",".join(str(a) for a in self.args)
         return f"{prefix}{self.name}({args_str})"
 
@@ -63,13 +63,13 @@ Clause = list[Literal]
 
 
 # ------------------------------------------------------------------
-# Factory functions — thin wrappers for readability
+# Factory functions -- thin wrappers for readability
 # ------------------------------------------------------------------
 
 
 def Val(i, j, v) -> Literal:
     """
-    Create a ``Val(i, j, v)`` literal — cell (i,j) holds value v.
+    Create a ``Val(i, j, v)`` literal -- cell (i,j) holds value v.
 
     Parameters
     ----------
@@ -90,7 +90,7 @@ def Val(i, j, v) -> Literal:
 
 def NotVal(i, j, v) -> Literal:
     """
-    Create a ``NotVal(i, j, v)`` literal — cell (i,j) cannot hold value v.
+    Create a ``NotVal(i, j, v)`` literal -- cell (i,j) cannot hold value v.
 
     Parameters
     ----------
@@ -111,7 +111,7 @@ def NotVal(i, j, v) -> Literal:
 
 def Given(i: int, j: int, v: int) -> Literal:
     """
-    Create a ``Given(i, j, v)`` literal — cell (i,j) is a clue.
+    Create a ``Given(i, j, v)`` literal -- cell (i,j) is a clue.
 
     Parameters
     ----------
@@ -132,7 +132,7 @@ def Given(i: int, j: int, v: int) -> Literal:
 
 def LessH(i: int, j: int) -> Literal:
     """
-    Create a ``LessH(i, j)`` literal — horizontal ``<`` constraint.
+    Create a ``LessH(i, j)`` literal -- horizontal ``<`` constraint.
 
     Indicates that cell(i,j) < cell(i,j+1).
 
@@ -153,7 +153,7 @@ def LessH(i: int, j: int) -> Literal:
 
 def GreaterH(i: int, j: int) -> Literal:
     """
-    Create a ``GreaterH(i, j)`` literal — horizontal ``>`` constraint.
+    Create a ``GreaterH(i, j)`` literal -- horizontal ``>`` constraint.
 
     Indicates that cell(i,j) > cell(i,j+1).
 
@@ -174,7 +174,7 @@ def GreaterH(i: int, j: int) -> Literal:
 
 def LessV(i: int, j: int) -> Literal:
     """
-    Create a ``LessV(i, j)`` literal — vertical ``<`` constraint.
+    Create a ``LessV(i, j)`` literal -- vertical ``<`` constraint.
 
     Indicates that cell(i,j) < cell(i+1,j).
 
@@ -195,7 +195,7 @@ def LessV(i: int, j: int) -> Literal:
 
 def GreaterV(i: int, j: int) -> Literal:
     """
-    Create a ``GreaterV(i, j)`` literal — vertical ``>`` constraint.
+    Create a ``GreaterV(i, j)`` literal -- vertical ``>`` constraint.
 
     Indicates that cell(i,j) > cell(i+1,j).
 
@@ -216,7 +216,7 @@ def GreaterV(i: int, j: int) -> Literal:
 
 def Less(v1, v2) -> Literal:
     """
-    Create a ``Less(v1, v2)`` literal — numerical relation v1 < v2.
+    Create a ``Less(v1, v2)`` literal -- numerical relation v1 < v2.
 
     Parameters
     ----------
@@ -245,7 +245,7 @@ def Geq(v1, v2) -> Literal:
 
 def Diff(a, b) -> Literal:
     """
-    Create a ``Diff(a, b)`` literal — inequality relation a != b.
+    Create a ``Diff(a, b)`` literal -- inequality relation a != b.
 
     Used in Prolog-style rules to express that two values are different.
     
@@ -266,7 +266,7 @@ def Diff(a, b) -> Literal:
 
 def Domain(v) -> Literal:
     """
-    Create a ``Domain(v)`` literal — v is a valid domain value.
+    Create a ``Domain(v)`` literal -- v is a valid domain value.
 
     Parameters
     ----------
@@ -283,7 +283,7 @@ def Domain(v) -> Literal:
 
 def ValidVal(i, j, v) -> Literal:
     """
-    Create a ``ValidVal(i, j, v)`` literal — value v is valid for cell (i,j).
+    Create a ``ValidVal(i, j, v)`` literal -- value v is valid for cell (i,j).
 
     This is a positive predicate used in Definite Clauses to derive
     that a value satisfies all constraints for a given cell.

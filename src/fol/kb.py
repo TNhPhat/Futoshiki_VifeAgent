@@ -11,7 +11,7 @@ class CNFClauseKnowledgeBase:
     A propositional CNF knowledge base.
 
     Stores a list of CNF clauses (disjunctions of literals) and a
-    separate set of *facts* — literals that have been asserted as true,
+    separate set of *facts* -- literals that have been asserted as true,
     either directly or extracted from unit clauses.
 
     Parameters

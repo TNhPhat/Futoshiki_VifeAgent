@@ -5,7 +5,7 @@ Removes provably impossible values from cell domains by enforcing
 arc consistency across row-uniqueness, column-uniqueness, and
 inequality constraints.
 
-A domain dict maps ``(row, col) → {possible values}`` for each
+A domain dict maps ``(row, col) -> {possible values}`` for each
 unassigned cell.  Assigned cells are absent from this dict; their
 fixed values are read directly from the puzzle grid.
 
@@ -127,10 +127,10 @@ class AC3Propagator:
                     _add(a, b, REL_GT)
                     _add(b, a, REL_LT)
             elif a_empty:
-                # b is assigned — tighten a against the fixed value
+                # b is assigned -- tighten a against the fixed value
                 bval = int(puzzle.grid[b[0], b[1]])
                 if bval == 0:
-                    # b is also unassigned but not in domains → skip
+                    # b is also unassigned but not in domains -> skip
                     continue
                 if ineq.direction == "<":
                     domains[a] = {v for v in domains[a] if v < bval}

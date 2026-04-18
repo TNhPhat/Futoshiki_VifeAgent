@@ -32,7 +32,7 @@ class AStarSolver(BaseSolver):
     ----------
     heuristic : BaseHeuristic, optional
         The heuristic to use for h(n) estimation.
-        Defaults to ``DomainSizeHeuristic`` (h₂).
+        Defaults to ``DomainSizeHeuristic`` (h2).
     """
 
     def __init__(

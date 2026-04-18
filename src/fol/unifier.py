@@ -166,7 +166,7 @@ class Unifier:
 
     def compose(self, subst1: Substitution, subst2: Substitution) -> Optional[Substitution]:
         """
-        Compose two substitutions: subst1 ∘ subst2.
+        Compose two substitutions: subst1 o subst2.
         
         The result, when applied to a term, gives the same result as
         applying subst2 first, then subst1.

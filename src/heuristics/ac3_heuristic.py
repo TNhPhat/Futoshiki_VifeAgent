@@ -1,15 +1,15 @@
 """
-Heuristic h₄: AC-3 Enhanced Domain Sum.
+Heuristic h4: AC-3 Enhanced Domain Sum.
 
 Runs AC-3 arc-consistency propagation on a **copy** of the current
-state's domains, then returns the h₂ formula (Σ (|domain'| - 1)) on
+state's domains, then returns the h2 formula (Sigma (|domain'| - 1)) on
 the pruned domains.
 
 If AC-3 detects a contradiction (any domain collapses to empty),
 returns a large penalty value indicating the state is unreachable.
 
-Verdict: ✅ Admissible — AC-3 only removes provably impossible values,
-so the pruned h₂ is ≤ raw h₂ ≤ h*(n).  Strongest heuristic but most
+Verdict: [ok] Admissible -- AC-3 only removes provably impossible values,
+so the pruned h2 is <= raw h2 <= h*(n).  Strongest heuristic but most
 expensive to compute per node.
 """
 
@@ -27,18 +27,18 @@ if TYPE_CHECKING:
 
 class AC3Heuristic(BaseHeuristic):
     """
-    h₄(n) = Σ (|domain'(i,j)| − 1) for all unassigned cells,
+    h4(n) = Sigma (|domain'(i,j)| - 1) for all unassigned cells,
     where domain' = domains after AC-3 propagation.
 
-    If any domain becomes empty after AC-3 → returns N x N x N
+    If any domain becomes empty after AC-3 -> returns N x N x N
     (large penalty signalling a dead-end state).
 
-    Complexity: O(e x d³) per call, where e = arcs, d = max domain.
+    Complexity: O(e x d3) per call, where e = arcs, d = max domain.
     """
 
     def estimate(self, state: SearchState, puzzle: Puzzle) -> int:
         """
-        Run AC-3 on a copy of the state's domains, then compute h₂.
+        Run AC-3 on a copy of the state's domains, then compute h2.
 
         Parameters
         ----------
@@ -50,7 +50,7 @@ class AC3Heuristic(BaseHeuristic):
         Returns
         -------
         int
-            h₂ on pruned domains, or N³ on contradiction.
+            h2 on pruned domains, or N3 on contradiction.
         """
         N = puzzle.N
 
@@ -62,9 +62,9 @@ class AC3Heuristic(BaseHeuristic):
 
         result = AC3Propagator.propagate(domains_copy, puzzle)
         if result is None:
-            return N * N * N  # contradiction → large penalty
+            return N * N * N  # contradiction -> large penalty
 
-        # h₂ formula on pruned domains
+        # h2 formula on pruned domains
         total = 0
         for (i, j), dom in result.items():
             if state.grid[i, j] == 0:

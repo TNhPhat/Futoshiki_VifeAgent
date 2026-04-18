@@ -1,11 +1,11 @@
 """
 Horn Clause Generator for Futoshiki puzzles (Generate-and-Test paradigm).
 
-Default mode (base backward chaining):
+Default mode:
     - Global Domain(v) facts for v in 1..N
     - Solution rule body uses Domain(var)
 
-Optional AC3-pruned mode:
+Cell-domain mode:
     - Per-cell Domain_r_c(v) facts
     - Solution rule body uses Domain_r_c(var)
 """
@@ -437,5 +437,4 @@ class HornClauseGenerator:
                 return None
             domains[(r, c)] = domain
 
-        domains = HornClauseGenerator.hidden_single_domains(puzzle, empty_cells=empty_cells)
         return AC3Propagator.propagate(domains, puzzle)

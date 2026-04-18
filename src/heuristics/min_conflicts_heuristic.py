@@ -1,12 +1,12 @@
 """
-Heuristic h₃: Minimum Conflicts Estimate.
+Heuristic h3: Minimum Conflicts Estimate.
 
 For each unassigned cell, compute the minimum number of conflicts it
 would cause with *already-assigned* neighbours (same row, same column,
 or linked by an inequality constraint) across all values in its domain.
 Sum these per-cell minima.
 
-Verdict: ✅ Admissible, good for conflict-dense puzzles.
+Verdict: [ok] Admissible, good for conflict-dense puzzles.
 """
 
 from __future__ import annotations
@@ -22,9 +22,9 @@ if TYPE_CHECKING:
 
 class MinConflictsHeuristic(BaseHeuristic):
     """
-    h₃(n) = Σ min_conflicts(i,j) for all unassigned cells.
+    h3(n) = Sigma min_conflicts(i,j) for all unassigned cells.
 
-    Complexity: O(N² x d) where d = max domain size.
+    Complexity: O(N2 x d) where d = max domain size.
     """
 
     def estimate(self, state: SearchState, puzzle: Puzzle) -> int:
@@ -42,7 +42,7 @@ class MinConflictsHeuristic(BaseHeuristic):
         Returns
         -------
         int
-            Σ min_conflicts(i,j) for all unassigned cells.
+            Sigma min_conflicts(i,j) for all unassigned cells.
         """
         N = puzzle.N
         grid = state.grid
@@ -52,7 +52,7 @@ class MinConflictsHeuristic(BaseHeuristic):
             if grid[i, j] != 0:
                 continue
             if not domain:
-                # Empty domain → this branch is dead; large penalty
+                # Empty domain -> this branch is dead; large penalty
                 total += N
                 continue
 

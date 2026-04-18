@@ -1,11 +1,11 @@
 """
-Heuristic h₂: Domain Sum Minus One.
+Heuristic h2: Domain Sum Minus One.
 
-For each unassigned cell, contributes ``(|domain| − 1)`` to the total.
+For each unassigned cell, contributes ``(|domain| - 1)`` to the total.
 A cell with a singleton domain (already determined) contributes 0;
-a cell with all N values still possible contributes N−1.
+a cell with all N values still possible contributes N-1.
 
-Verdict: ✅ Admissible, more informed than h₁.
+Verdict: [ok] Admissible, more informed than h1.
 """
 
 from __future__ import annotations
@@ -21,9 +21,9 @@ if TYPE_CHECKING:
 
 class DomainSizeHeuristic(BaseHeuristic):
     """
-    h₂(n) = Σ (|domain(i,j)| − 1) for all unassigned cells.
+    h2(n) = Sigma (|domain(i,j)| - 1) for all unassigned cells.
 
-    Complexity: O(N²).
+    Complexity: O(N2).
     """
 
     def estimate(self, state: SearchState, puzzle: Puzzle) -> int:
@@ -40,7 +40,7 @@ class DomainSizeHeuristic(BaseHeuristic):
         Returns
         -------
         int
-            Σ (|domain(i,j)| − 1) for all unassigned cells.
+            Sigma (|domain(i,j)| - 1) for all unassigned cells.
         """
         total = 0
         for (i, j), domain in state.domains.items():

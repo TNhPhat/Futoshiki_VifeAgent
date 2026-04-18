@@ -36,14 +36,20 @@ class InputHandler:
                 if state.mode == AppMode.KB and state.kb_show_popup:
                     state._kb_popup_scroll = max(0, getattr(state, "_kb_popup_scroll", 0) - 20)
                 elif state.mode == AppMode.KB:
-                    state.cnf_kb_scroll = max(0, state.cnf_kb_scroll - 1)
+                    if state.kb_panel_view == "rules":
+                        state.kb_rules_scroll = max(0, state.kb_rules_scroll - 1)
+                    else:
+                        state.cnf_kb_scroll = max(0, state.cnf_kb_scroll - 1)
                 else:
                     state.puzzle_list_scroll = max(0, state.puzzle_list_scroll - 1)
             elif event.button == 5:   # scroll down
                 if state.mode == AppMode.KB and state.kb_show_popup:
                     state._kb_popup_scroll = getattr(state, "_kb_popup_scroll", 0) + 20
                 elif state.mode == AppMode.KB:
-                    state.cnf_kb_scroll += 1
+                    if state.kb_panel_view == "rules":
+                        state.kb_rules_scroll += 1
+                    else:
+                        state.cnf_kb_scroll += 1
                 else:
                     state.puzzle_list_scroll += 1
 
@@ -82,7 +88,7 @@ class InputHandler:
             if rects.get("kb_popup_scroll_down", pygame.Rect(0, 0, 0, 0)).collidepoint(pos):
                 state._kb_popup_scroll = getattr(state, "_kb_popup_scroll", 0) + 20
                 return
-            # Click outside card → close
+            # Click outside card -> close
             from ui.layout import GRID_AREA_RECT
             # Any click that didn't hit a popup button dismisses the popup
             state.kb_show_popup = False
@@ -170,15 +176,30 @@ class InputHandler:
                 state.kb_show_popup = not state.kb_show_popup
                 state._kb_popup_scroll = 0
                 return
+            # View toggle tabs
+            if rects.get("kb_tab_facts", pygame.Rect(0, 0, 0, 0)).collidepoint(pos):
+                state.kb_panel_view = "facts"
+                state.kb_hovered_clause = None
+                return
+            if rects.get("kb_tab_rules", pygame.Rect(0, 0, 0, 0)).collidepoint(pos):
+                state.kb_panel_view = "rules"
+                state.kb_hovered_lit = None
+                state.kb_selected_lit = None
+                return
             if rects.get("cnf_kb_up", pygame.Rect(0, 0, 0, 0)).collidepoint(pos):
-                state.cnf_kb_scroll = max(0, state.cnf_kb_scroll - 1)
+                if state.kb_panel_view == "rules":
+                    state.kb_rules_scroll = max(0, state.kb_rules_scroll - 1)
+                else:
+                    state.cnf_kb_scroll = max(0, state.cnf_kb_scroll - 1)
                 return
             if rects.get("cnf_kb_down", pygame.Rect(0, 0, 0, 0)).collidepoint(pos):
-                state.cnf_kb_scroll += 1
+                if state.kb_panel_view == "rules":
+                    state.kb_rules_scroll += 1
+                else:
+                    state.cnf_kb_scroll += 1
                 return
             for row_rect, q_rect, lit in rects.get("_kb_fact_rows", []):
                 if q_rect.collidepoint(pos):
-                    # Toggle pin: clicking again unpins
                     state.kb_selected_lit = None if state.kb_selected_lit == lit else lit
                     return
             return  # no grid interaction in KB mode
@@ -188,15 +209,24 @@ class InputHandler:
             self._handle_grid_click(pos)
 
     def _update_kb_hover(self, pos: tuple[int, int]) -> None:
-        """Update kb_hovered_lit and kb_hovered_cell from mouse position."""
+        """Update kb_hovered_lit, kb_hovered_clause, and kb_hovered_cell."""
         state = self._app._state
+
+        # Facts view hover
         state.kb_hovered_lit = None
         for row_rect, _q_rect, lit in state._hud_rects.get("_kb_fact_rows", []):
             if row_rect.collidepoint(pos):
                 state.kb_hovered_lit = lit
                 break
 
-        # Detect which grid cell the mouse is over
+        # Rules view hover
+        state.kb_hovered_clause = None
+        for row_rect, clause in state._hud_rects.get("_kb_rule_rows", []):
+            if row_rect.collidepoint(pos):
+                state.kb_hovered_clause = clause
+                break
+
+        # Grid cell hover (for domain tooltip)
         state.kb_hovered_cell = None
         board = state.board
         if board is not None:

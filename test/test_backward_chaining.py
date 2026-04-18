@@ -20,7 +20,6 @@ from fol.unifier import Unifier, Substitution
 from fol.horn_kb import HornClause, HornClauseKnowledgeBase
 from fol.horn_generator import HornClauseGenerator
 from inference.backward_chaining import BackwardChainingEngine
-from solver.ac3_backward_chaining_solver import AC3BackwardChaining
 from solver.backward_chaining_solver import BackwardChaining
 from core.parser import Parser
 from core.puzzle import Puzzle
@@ -472,26 +471,6 @@ def test_solver_name():
     
     assert "Backward" in name or "backward" in name, f"Name should mention backward: {name}"
     print(f"  [PASS] Solver name: {name}")
-
-
-def test_ac3_solver_solve_4x4():
-    """AC3BackwardChaining solves a valid 4x4 puzzle."""
-    puzzle = create_valid_4x4_puzzle()
-    solver = AC3BackwardChaining()
-
-    solution, _ = solver.solve(puzzle)
-    assert solution is not None
-    assert solution.is_complete(), "AC3 solution should be complete"
-
-    for i in range(4):
-        row = list(solution.grid[i])
-        assert sorted(row) == [1, 2, 3, 4], f"Row {i} invalid: {row}"
-
-
-def test_ac3_solver_name():
-    """AC3BackwardChaining returns a name that mentions AC3."""
-    name = AC3BackwardChaining().get_name()
-    assert "AC3" in name, f"Name should mention AC3: {name}"
 
 
 # ===========================================================================

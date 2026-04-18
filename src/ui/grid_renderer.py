@@ -44,10 +44,14 @@ class GridRenderer(BaseRenderer):
         # Draw outer grid border
         pygame.draw.rect(surface, T.CLR_GRID_LINE, grid_rect, 2)
 
-        # KB mode: highlight cells referenced by the hovered / selected fact
+        # KB mode: highlight cells referenced by the hovered / selected fact or clause
         if state.mode == AppMode.KB:
-            lit = state.kb_hovered_lit or state.kb_selected_lit
-            for (hi, hj) in _lit_cells_for_puzzle(lit, board.puzzle):
+            if state.kb_hovered_clause is not None:
+                highlight_cells = _clause_cells(state.kb_hovered_clause)
+            else:
+                lit = state.kb_hovered_lit or state.kb_selected_lit
+                highlight_cells = _lit_cells_for_puzzle(lit, board.puzzle)
+            for (hi, hj) in highlight_cells:
                 hrect = cell_rect(hi, hj, grid_rect, cell_size, gap)
                 hl = pygame.Surface((hrect.width, hrect.height), pygame.SRCALPHA)
                 hl.fill((*T.CLR_CELL_KB_HL, 160))
@@ -172,7 +176,6 @@ class GridRenderer(BaseRenderer):
         h = len(lines) * line_h + pad * 2
 
         # Position tooltip below-right of the cell, clamp inside grid area
-        from ui.layout import GRID_AREA_RECT
         crect = cell_rect(i, j, grid_rect, cell_size, gap)
         tx = crect.right + 4
         ty = crect.top
@@ -217,17 +220,11 @@ class GridRenderer(BaseRenderer):
 
 
 # ---------------------------------------------------------------------------
-# KB literal → cell helper
+# KB literal -> cell helper
 # ---------------------------------------------------------------------------
 
 def _lit_cells_for_puzzle(lit, puzzle) -> list[tuple[int, int]]:
-    """Return the grid cells (row, col) to highlight for a CNF literal.
-
-    For cell-specific predicates the relevant cell(s) are returned directly.
-    For numeric ``Less`` / ``¬Less`` facts — which have no cell address — all
-    cells that border any inequality constraint are returned so the user can
-    see which constraints this ordering fact supports.
-    """
+    """Return the grid cells (row, col) to highlight for a CNF literal."""
     if lit is None:
         return []
     n, args = lit.name, lit.args
@@ -239,23 +236,32 @@ def _lit_cells_for_puzzle(lit, puzzle) -> list[tuple[int, int]]:
     if n in ("LessV", "GreaterV"):
         r, c = args[0], args[1]
         return [(r, c), (r + 1, c)]
-    if n == "Less":
-        # Numeric ordering fact — highlight every cell adjacent to any
-        # inequality constraint to show which relations this fact supports.
-        seen: set[tuple[int, int]] = set()
-        cells: list[tuple[int, int]] = []
-        for c in puzzle.h_constraints:
-            for cell in (c.cell1, c.cell2):
-                if cell not in seen:
-                    seen.add(cell)
-                    cells.append(cell)
-        for c in puzzle.v_constraints:
-            for cell in (c.cell1, c.cell2):
-                if cell not in seen:
-                    seen.add(cell)
-                    cells.append(cell)
-        return cells
     return []
+
+
+def _clause_cells(clause) -> list[tuple[int, int]]:
+    """Return deduplicated grid cells referenced by any literal in a clause."""
+    seen: set[tuple[int, int]] = set()
+    cells: list[tuple[int, int]] = []
+    for lit in clause:
+        n, args = lit.name, lit.args
+        if n in ("Val", "NotVal", "Given", "ValidVal"):
+            cell = (args[0], args[1])
+        elif n in ("LessH", "GreaterH"):
+            for cell in ((args[0], args[1]), (args[0], args[1] + 1)):
+                if cell not in seen:
+                    seen.add(cell); cells.append(cell)
+            continue
+        elif n in ("LessV", "GreaterV"):
+            for cell in ((args[0], args[1]), (args[0] + 1, args[1])):
+                if cell not in seen:
+                    seen.add(cell); cells.append(cell)
+            continue
+        else:
+            continue
+        if cell not in seen:
+            seen.add(cell); cells.append(cell)
+    return cells
 
 
 # ---------------------------------------------------------------------------

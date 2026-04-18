@@ -8,7 +8,7 @@ class Formatter:
     Renders a Futoshiki puzzle as a human-readable string or file.
 
     Uses the puzzle's own grid; empty cells (value 0) are shown as
-    ``"."``.  Works for both unsolved and solved puzzles — solvers
+    ``"."``.  Works for both unsolved and solved puzzles -- solvers
     should write their result back into ``puzzle.grid`` before calling.
 
     Example output::
@@ -138,5 +138,5 @@ class Formatter:
             else:
                 parts.append("v")
             if j < puzzle.N - 1:
-                parts.append(" ")  # column gap — mirrors h-constraint slot
+                parts.append(" ")  # column gap -- mirrors h-constraint slot
         return " ".join(parts).rstrip()

@@ -27,7 +27,7 @@ class Board:
     # Mutable grid: copy of puzzle.grid; user can edit non-given cells.
     grid: np.ndarray = field(init=False)
 
-    # Pencil marks: cell → set of candidate values the user has noted.
+    # Pencil marks: cell -> set of candidate values the user has noted.
     notes: dict[tuple[int, int], set[int]] = field(default_factory=dict)
 
     # Currently selected cell (row, col) or None.
@@ -108,7 +108,7 @@ class Board:
         if not row_has_v and not col_has_v:
             cell_notes.add(v)
             return True
-        return False  # blocked — caller should show feedback
+        return False  # blocked -- caller should show feedback
 
     # ------------------------------------------------------------------
     # Undo
@@ -130,7 +130,7 @@ class Board:
         Find a cell whose value is logically forced by AC3 domain reduction.
 
         Returns (row, col, value) or None if no forced cell is found.
-        The hint does NOT modify the board — the caller decides whether to apply it.
+        The hint does NOT modify the board -- the caller decides whether to apply it.
         """
         from fol.horn_generator import HornClauseGenerator
 

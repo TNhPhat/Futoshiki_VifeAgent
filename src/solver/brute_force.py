@@ -18,7 +18,7 @@ class BruteForceSolver(BaseSolver):
     constraints (row/column uniqueness and all inequality constraints).
 
     Complexity: O(N^K) where K = number of empty cells.
-    Practical only for small grids (N ≤ 4).
+    Practical only for small grids (N <= 4).
     """
 
     def get_name(self) -> str:

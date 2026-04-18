@@ -107,7 +107,7 @@ class InMemoryPuzzleRepository:
         Parameters
         ----------
         n : int
-            Grid size (4–9 recommended).
+            Grid size (4-9 recommended).
         difficulty : str
             One of "easy", "medium", or "hard".
         seed : int or None
@@ -127,7 +127,7 @@ class InMemoryPuzzleRepository:
 
 
 # ---------------------------------------------------------------------------
-# Helper: convert FutoshikiGenerator state → Puzzle
+# Helper: convert FutoshikiGenerator state -> Puzzle
 # ---------------------------------------------------------------------------
 
 def _generator_to_puzzle(gen: FutoshikiGenerator) -> Puzzle:
