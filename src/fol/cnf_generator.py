@@ -19,6 +19,36 @@ class CNFGenerator:
     """
 
     @staticmethod
+    def generate_ground_kb(N: int) -> CNFClauseKnowledgeBase:
+        """
+        Build a ground CNF knowledge base from grid size only.
+
+        This is equivalent to generating CNF for an empty NxN puzzle:
+        no given clues and no inequality constraints.
+
+        Parameters
+        ----------
+        N : int
+            Grid size.
+
+        Returns
+        -------
+        CNFClauseKnowledgeBase
+            A populated KB containing all axioms that can be grounded
+            using only ``N``.
+        """
+        import numpy as np
+        from core.puzzle import Puzzle
+
+        empty_puzzle = Puzzle(
+            N=N,
+            grid=np.zeros((N, N), dtype=int),
+            h_constraints=[],
+            v_constraints=[],
+        )
+        return CNFGenerator.generate(empty_puzzle)
+
+    @staticmethod
     def generate(puzzle: Puzzle) -> CNFClauseKnowledgeBase:
         """
         Build a complete CNF knowledge base for the given puzzle.
