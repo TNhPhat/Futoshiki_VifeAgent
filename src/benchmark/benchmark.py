@@ -219,8 +219,9 @@ def run_benchmark(solver_key: str, benchmark_root: Path, max_n: int | None = Non
     return rows, failed
 
 
-def main(argv: list[str] | None = None) -> int:
+def build_parser(prog: str | None = None) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
+        prog=prog,
         description="Run solver benchmarks against expected puzzle solutions."
     )
     parser.add_argument(
@@ -246,6 +247,11 @@ def main(argv: list[str] | None = None) -> int:
         metavar="N",
         help="Skip puzzles larger than NxN (e.g. --max-n 6 runs only 4x4..6x6).",
     )
+    return parser
+
+
+def main(argv: list[str] | None = None, *, prog: str | None = None) -> int:
+    parser = build_parser(prog=prog)
     args = parser.parse_args(argv)
     if (args.solver == "all"):
         for solver in _solver_registry():

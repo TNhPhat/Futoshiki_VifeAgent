@@ -379,8 +379,9 @@ def visualize(data_dir: Path, output_dir: Path | None = None) -> None:
     _plot_heatmap(df, out)
 
 
-def main(argv: list[str] | None = None) -> int:
+def build_parser(prog: str | None = None) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
+        prog=prog,
         description="Visualize benchmark CSV results with line charts and a heatmap."
     )
     parser.add_argument(
@@ -401,6 +402,11 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         help="Generate LaTeX tables and save .tex files to this directory.",
     )
+    return parser
+
+
+def main(argv: list[str] | None = None, *, prog: str | None = None) -> int:
+    parser = build_parser(prog=prog)
     args = parser.parse_args(argv)
 
     if args.output_dir:

@@ -311,8 +311,9 @@ def generate_benchmark_corpus(output_root: Path, *, verbose: bool = True) -> lis
     return written_files
 
 
-def main(argv: list[str] | None = None) -> int:
+def build_parser(prog: str | None = None) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
+        prog=prog,
         description="Generate the benchmark corpus for the project."
     )
     parser.add_argument(
@@ -321,6 +322,11 @@ def main(argv: list[str] | None = None) -> int:
         default=Path(__file__).resolve().parent,
         help="Benchmark directory that contains the input and expected folders.",
     )
+    return parser
+
+
+def main(argv: list[str] | None = None, *, prog: str | None = None) -> int:
+    parser = build_parser(prog=prog)
     args = parser.parse_args(argv)
 
     written_files = generate_benchmark_corpus(args.benchmark_root)

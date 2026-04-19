@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 from typing import Sequence
 
+from .benchmark.__main__ import main as benchmark_main
 from .solver.__main__ import main as solver_main
 from .ui.__main__ import main as ui_main
 
@@ -17,7 +18,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     solver_parser = subparsers.add_parser(
         "solver",
         add_help=False,
-        help="Run solver tools (benchmarking).",
+        help="Solve a puzzle file or folder.",
     )
     solver_parser.add_argument("-h", "--help", action="store_true")
     solver_parser.add_argument("args", nargs=argparse.REMAINDER)
@@ -40,18 +41,18 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.component == "solver":
         solver_args = args.args
         if args.help or not solver_args or solver_args[0] in {"-h", "--help"}:
-            return solver_main(["--help"])
+            return solver_main(["--help"], prog="futoshiki solver")
         if solver_args and solver_args[0] == "--":
             solver_args = solver_args[1:]
-        return solver_main(solver_args)
+        return solver_main(solver_args, prog="futoshiki solver")
 
     if args.component == "benchmark":
         benchmark_args = args.args
         if args.help or not benchmark_args or benchmark_args[0] in {"-h", "--help"}:
-            return solver_main(["--help"])
+            return benchmark_main(["--help"])
         if benchmark_args and benchmark_args[0] == "--":
             benchmark_args = benchmark_args[1:]
-        return solver_main(benchmark_args)
+        return benchmark_main(benchmark_args)
 
     if args.component == "ui":
         ui_args = args.args

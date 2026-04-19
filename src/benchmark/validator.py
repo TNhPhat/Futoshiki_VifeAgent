@@ -239,8 +239,11 @@ def validate_path(path: Path, expected_dir: Path | None = None) -> list[Validati
     return results
 
 
-def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Validate Futoshiki benchmark files.")
+def build_parser(prog: str | None = None) -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog=prog,
+        description="Validate Futoshiki benchmark files.",
+    )
     parser.add_argument("path", type=Path, help="File or directory to validate.")
     parser.add_argument(
         "--expected-dir",
@@ -248,6 +251,11 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         help="Optional directory containing expected solution files to compare by filename.",
     )
+    return parser
+
+
+def main(argv: list[str] | None = None, *, prog: str | None = None) -> int:
+    parser = build_parser(prog=prog)
     args = parser.parse_args(argv)
 
     results = validate_path(args.path, expected_dir=args.expected_dir)
