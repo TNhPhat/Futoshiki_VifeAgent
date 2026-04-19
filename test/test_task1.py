@@ -23,7 +23,7 @@ def test_literal_basics():
 
     neg = ~lit
     assert neg.negated is True
-    assert repr(neg) == "¬Val(0,0,1)"
+    assert repr(neg) == "~Val(0,0,1)"
 
     # Double negation restores original
     assert ~~lit == lit
@@ -193,7 +193,7 @@ def test_a16_correctness(N: int, puzzle: Puzzle):
     a16 = Axioms.a16_inequality_contrapositive(N, puzzle)
 
     # LessH at (0,0): should ban v1 >= v2
-    # e.g. (v1=2, v2=1) should produce ¬Val(0,0,2) ∨ ¬Val(0,1,1)
+    # e.g. (v1=2, v2=1) should produce ~Val(0,0,2) ∨ ~Val(0,1,1)
     target = [~Val(0, 0, 2), ~Val(0, 1, 1)]
     found = any(c == target for c in a16)
     assert found, "A16: missing clause for LessH ban (2,1)"

@@ -103,7 +103,7 @@ def test_kb_queries():
     matching = kb.get_clauses_with(Val(0, 0, 1))
     assert len(matching) == 2
 
-    # Clauses containing ¬Val(0,0,1) — appears in third clause
+    # Clauses containing ~Val(0,0,1) — appears in third clause
     matching_neg = kb.get_clauses_with(~Val(0, 0, 1))
     assert len(matching_neg) == 1
 
@@ -225,7 +225,7 @@ def test_generate_test_puzzle():
     assert Val(1, 1, 2) in kb.facts, "Given Val(1,1,2) not in facts"
     assert Less(1, 2) in kb.facts, "Less(1,2) not in facts"
     assert Less(3, 4) in kb.facts, "Less(3,4) not in facts"
-    assert ~Less(1, 1) in kb.facts, "¬Less(1,1) not in facts"
+    assert ~Less(1, 1) in kb.facts, "~Less(1,1) not in facts"
 
     expected_facts = comb(N, 2) + N + 2  # 6 + 4 + 2 = 12
     assert len(kb.facts) == expected_facts, (
