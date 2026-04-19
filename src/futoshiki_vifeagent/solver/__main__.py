@@ -11,8 +11,6 @@ from benchmark import visualize as benchmark_visualize
 
 def main(argv: Sequence[str] | None = None) -> int:
     argv_list = list(argv) if argv is not None else []
-    if argv_list and argv_list[0].startswith("-"):
-        argv_list = ["run", *argv_list]
 
     parser = argparse.ArgumentParser(
         prog="futoshiki-solver",
