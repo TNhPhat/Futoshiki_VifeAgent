@@ -175,6 +175,27 @@ def test_generate_empty_puzzle():
     print(f"  [PASS] Empty puzzle: {len(kb)} clauses, {len(kb.facts)} facts")
 
 
+def test_generate_ground_kb_from_size():
+    """CNFGenerator.generate_ground_kb(N) matches empty-puzzle generation."""
+    N = 4
+    kb_from_size = CNFGenerator.generate_ground_kb(N)
+    kb_from_empty = CNFGenerator.generate(make_empty_puzzle(N))
+
+    assert len(kb_from_size) == len(kb_from_empty), (
+        f"Ground KB: {len(kb_from_size)} clauses != {len(kb_from_empty)}"
+    )
+    assert kb_from_size.facts == kb_from_empty.facts, (
+        "Ground KB facts differ from empty-puzzle generation"
+    )
+    assert kb_from_size.get_clauses() == kb_from_empty.get_clauses(), (
+        "Ground KB clauses differ from empty-puzzle generation"
+    )
+
+    print(
+        "  [PASS] generate_ground_kb(N) matches generate(empty puzzle)"
+    )
+
+
 def test_generate_test_puzzle():
     """
     Test CNFGenerator.generate on the test puzzle with givens + constraints.
@@ -266,6 +287,7 @@ if __name__ == "__main__":
 
     print("\nCNFGenerator — empty 4x4:")
     test_generate_empty_puzzle()
+    test_generate_ground_kb_from_size()
 
     print("\nCNFGenerator — test puzzle 4x4:")
     test_generate_test_puzzle()
