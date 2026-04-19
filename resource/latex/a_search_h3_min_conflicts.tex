@@ -1,0 +1,51 @@
+\documentclass{article}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{geometry}
+\geometry{margin=2cm, landscape}
+
+\begin{document}
+
+\begin{longtable}{@{}lccl r r r c@{}}
+  \caption{Benchmark results -- A* Search (h3: Min Conflicts)} \label{tab:a__search__h3__min_conflicts} \\
+  \toprule
+  \textbf{Test Case} & \textbf{Size} & \textbf{Difficulty} & \textbf{Algorithm} & \textbf{Time (s)} & \textbf{Memory (KB)} & \textbf{Exp./Inf.} & \textbf{Completion} \\
+  \midrule
+  \endfirsthead
+  \multicolumn{8}{c}{\tablename\ \thetable{} -- continued} \\
+  \toprule
+  \textbf{Test Case} & \textbf{Size} & \textbf{Difficulty} & \textbf{Algorithm} & \textbf{Time (s)} & \textbf{Memory (KB)} & \textbf{Exp./Inf.} & \textbf{Completion} \\
+  \midrule
+  \endhead
+  \midrule
+  \multicolumn{8}{r}{\textit{Continued on next page}} \\
+  \endfoot
+  \bottomrule
+  \endlastfoot
+  \texttt{puzzle\_01\_4x4\_easy} & $4\times4$ & Easy & A* Search (h3: Min Conflicts) & 0.0013 & 4.79 & 1 & 1.00 \\
+  \texttt{puzzle\_02\_4x4\_medium} & $4\times4$ & Medium & A* Search (h3: Min Conflicts) & 0.0012 & 4.29 & 1 & 1.00 \\
+  \texttt{puzzle\_03\_4x4\_medium} & $4\times4$ & Medium & A* Search (h3: Min Conflicts) & 0.0006 & 3.87 & 1 & 1.00 \\
+  \texttt{puzzle\_04\_4x4\_hard} & $4\times4$ & Hard & A* Search (h3: Min Conflicts) & 0.0006 & 4.02 & 1 & 1.00 \\
+  \texttt{puzzle\_05\_5x5\_easy} & $5\times5$ & Easy & A* Search (h3: Min Conflicts) & 0.0021 & 11.52 & 1 & 1.00 \\
+  \texttt{puzzle\_06\_5x5\_medium} & $5\times5$ & Medium & A* Search (h3: Min Conflicts) & 0.0010 & 13.00 & 1 & 1.00 \\
+  \texttt{puzzle\_07\_5x5\_medium} & $5\times5$ & Medium & A* Search (h3: Min Conflicts) & 0.0022 & 13.74 & 2 & 1.00 \\
+  \texttt{puzzle\_08\_5x5\_hard} & $5\times5$ & Hard & A* Search (h3: Min Conflicts) & 0.0037 & 31.82 & 4 & 1.00 \\
+  \texttt{puzzle\_09\_6x6\_easy} & $6\times6$ & Easy & A* Search (h3: Min Conflicts) & 0.0044 & 15.63 & 1 & 1.00 \\
+  \texttt{puzzle\_10\_6x6\_medium} & $6\times6$ & Medium & A* Search (h3: Min Conflicts) & 0.0025 & 19.16 & 2 & 1.00 \\
+  \texttt{puzzle\_11\_6x6\_medium} & $6\times6$ & Medium & A* Search (h3: Min Conflicts) & 0.0018 & 20.60 & 1 & 1.00 \\
+  \texttt{puzzle\_12\_6x6\_hard} & $6\times6$ & Hard & A* Search (h3: Min Conflicts) & 0.0125 & 80.22 & 12 & 1.00 \\
+  \texttt{puzzle\_13\_7x7\_easy} & $7\times7$ & Easy & A* Search (h3: Min Conflicts) & 0.0030 & 20.76 & 1 & 1.00 \\
+  \texttt{puzzle\_14\_7x7\_medium} & $7\times7$ & Medium & A* Search (h3: Min Conflicts) & 0.0065 & 26.39 & 4 & 1.00 \\
+  \texttt{puzzle\_15\_7x7\_medium} & $7\times7$ & Medium & A* Search (h3: Min Conflicts) & 0.1263 & 345.55 & 63 & 1.00 \\
+  \texttt{puzzle\_16\_7x7\_hard} & $7\times7$ & Hard & A* Search (h3: Min Conflicts) & 0.1177 & 583.25 & 79 & 1.00 \\
+  \texttt{puzzle\_17\_8x8\_easy} & $8\times8$ & Easy & A* Search (h3: Min Conflicts) & 0.0048 & 25.43 & 1 & 1.00 \\
+  \texttt{puzzle\_18\_8x8\_medium} & $8\times8$ & Medium & A* Search (h3: Min Conflicts) & 0.0350 & 80.05 & 12 & 1.00 \\
+  \texttt{puzzle\_19\_8x8\_medium} & $8\times8$ & Medium & A* Search (h3: Min Conflicts) & 0.1362 & 421.93 & 65 & 1.00 \\
+  \texttt{puzzle\_20\_8x8\_hard} & $8\times8$ & Hard & A* Search (h3: Min Conflicts) & 8.9107 & 20917.83 & 4\,029 & 1.00 \\
+  \texttt{puzzle\_21\_9x9\_easy} & $9\times9$ & Easy & A* Search (h3: Min Conflicts) & 0.0171 & 33.62 & 1 & 1.00 \\
+  \texttt{puzzle\_22\_9x9\_medium} & $9\times9$ & Medium & A* Search (h3: Min Conflicts) & 0.2375 & 793.02 & 84 & 1.00 \\
+  \texttt{puzzle\_23\_9x9\_medium} & $9\times9$ & Medium & A* Search (h3: Min Conflicts) & 1.2911 & 2391.68 & 393 & 1.00 \\
+  \texttt{puzzle\_24\_9x9\_hard} & $9\times9$ & Hard & A* Search (h3: Min Conflicts) & 5.7805 & 11031.26 & 2\,249 & 1.00 \\
+\end{longtable}
+
+\end{document}

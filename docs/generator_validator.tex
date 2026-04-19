@@ -1,0 +1,431 @@
+% =============================================================================
+%  Puzzle Generator and Validator
+% =============================================================================
+\section{Puzzle Generator and Validator}
+\label{sec:generator_validator}
+
+\subsection{Overview}
+
+The benchmark corpus is maintained by two complementary tools:
+
+\begin{description}
+  \item[\texttt{FutoshikiGenerator}] Creates valid, uniquely-solvable Futoshiki
+    puzzles from scratch using a three-phase pipeline: backtracking fill,
+    constraint decoration, and clue removal.
+  \item[\texttt{validate\_file} / \texttt{validate\_path}] Verifies that a
+    puzzle file (a) is syntactically well-formed, (b) has a valid initial
+    state, (c) has \emph{exactly one} solution, and (d) if an expected file is
+    provided, that the recorded solution matches the Z3-computed solution and
+    shares the same constraint set.
+\end{description}
+
+Both tools use the Z3 SMT solver for uniqueness reasoning — the only place in
+the project where an external constraint solver is used.
+
+% =============================================================================
+\subsection{File Format}
+\label{sec:file_format}
+
+All puzzle files share a single text format understood by both the generator
+and the \texttt{Parser}:
+
+\begin{verbatim}
+N
+r0c0,r0c1,...,r0c(N-1)          <- N grid rows
+...
+h_r0_0,...,h_r0_(N-2)           <- N horizontal-constraint rows (N-1 values)
+...
+v_r0_0,...,v_r0_(N-1)           <- N-1 vertical-constraint rows (N values)
+\end{verbatim}
+
+Encoding conventions:
+\begin{itemize}
+  \item Grid cells: \texttt{0} = empty, \texttt{1}--\texttt{N} = given clue value.
+  \item Constraint cells: \texttt{0} = none, \texttt{1} = \texttt{<},
+        \texttt{-1} = \texttt{>}.
+  \item Lines beginning with \texttt{\#} are comments and are ignored by the
+        parser.
+\end{itemize}
+
+The benchmark corpus stores paired files under
+\texttt{resource/benchmark/input/} (puzzle with blanks) and
+\texttt{resource/benchmark/expected/} (fully solved grid) using the same
+filename so they can be matched by name.
+
+% =============================================================================
+\subsection{Parser}
+\label{sec:parser}
+
+\texttt{core/parser.py} converts a file into a \texttt{Puzzle} object.
+It reads the file in a single pass, stripping blank lines and comments.
+
+\begin{enumerate}
+  \item \textbf{Line 0}: reads $N$; raises \texttt{ParseError} if absent or
+        non-integer, or if $N < 2$.
+  \item \textbf{Lines 1–$N$}: parses $N$ grid rows, each with $N$
+        comma-separated integers in $\{0, \ldots, N\}$.
+  \item \textbf{Lines $N+1$–$2N$}: parses $N$ horizontal-constraint rows,
+        each with $N-1$ values in $\{-1, 0, 1\}$.
+        Each non-zero entry produces an \texttt{InequalityConstraint}.
+  \item \textbf{Lines $2N+1$–$3N-1$}: parses $N-1$ vertical-constraint rows,
+        each with $N$ values in $\{-1, 0, 1\}$.
+  \item \textbf{Post-parse validation}: checks all grid values are in
+        $\{0, \ldots, N\}$.
+\end{enumerate}
+
+The total line count of a well-formed file is $1 + N + N + (N-1) = 3N$.
+Any deviation raises a \texttt{ParseError} with the 1-based line number,
+enabling precise error messages.
+
+% =============================================================================
+\subsection{Puzzle Generator}
+\label{sec:generator}
+
+\texttt{FutoshikiGenerator} produces a puzzle in three sequential phases.
+The generator is seeded with a fixed integer so all 24 benchmark puzzles are
+reproducible deterministically.
+
+\subsubsection{Phase 1: Full Grid Construction (\texttt{generate\_full\_grid})}
+
+A complete $N \times N$ Latin square is built by backtracking with
+\emph{Minimum Remaining Values} (MRV) cell selection.
+
+\paragraph{MRV cell selection (\texttt{find\_empty}).}
+Instead of filling cells in row-major order, the generator always picks the
+empty cell with the fewest legal values remaining:
+
+\begin{enumerate}
+  \item Iterate all empty cells; for each count the number of values in
+        $\{1, \ldots, N\}$ that would not violate any row-uniqueness,
+        column-uniqueness, or active inequality constraint.
+  \item Two fast-path cuts:
+        \begin{itemize}
+          \item Options $= 0$: return immediately — this cell is a \emph{dead end};
+                the caller will backtrack without wasting time on other cells.
+          \item Options $= 1$: return immediately — a \emph{forced cell};
+                no point searching further.
+        \end{itemize}
+  \item Otherwise track the cell with the minimum option count and return it
+        after scanning all cells.
+\end{enumerate}
+
+\paragraph{Validity check (\texttt{is\_valid}).}
+For a candidate value $v$ at position $(r,c)$, the check tests:
+\begin{itemize}
+  \item Row uniqueness: no other cell in row $r$ holds $v$.
+  \item Column uniqueness: no other cell in column $c$ holds $v$.
+  \item Left horizontal constraint: if $h[r][c-1] \ne 0$ and $\text{grid}[r][c-1] \ne 0$,
+        the relation $\text{grid}[r][c-1] \;\square\; v$ must hold.
+  \item Right horizontal constraint: if $h[r][c] \ne 0$ and $\text{grid}[r][c+1] \ne 0$,
+        the relation $v \;\square\; \text{grid}[r][c+1]$ must hold.
+  \item Upper/lower vertical constraints: analogous checks for $v[r-1][c]$ and
+        $v[r][c]$.
+\end{itemize}
+
+Note that constraints are only enforced when the \emph{neighbour cell is already
+filled}; unfilled neighbours are skipped to avoid over-constraining the search.
+
+\paragraph{Fill loop.}
+The fill is a standard recursive backtracker: pick an empty cell via MRV,
+shuffle the value list (using the seeded \texttt{rng}), try each value in
+random order, recurse, and undo on failure.
+The final complete grid is saved as \texttt{solution\_grid}.
+
+\subsubsection{Phase 2: Constraint Decoration (\texttt{add\_constraints})}
+
+Each potential constraint position is included independently at random with
+probability equal to the \emph{density} parameter.
+The direction is derived directly from the solution:
+
+\begin{align*}
+  h[r][c] &= \begin{cases}
+    1  & \text{if } \text{sol}[r][c] < \text{sol}[r][c+1] \\
+    -1 & \text{otherwise}
+  \end{cases}
+  \quad \text{with probability } d \\
+  v[r][c] &= \begin{cases}
+    1  & \text{if } \text{sol}[r][c] < \text{sol}[r+1][c] \\
+    -1 & \text{otherwise}
+  \end{cases}
+  \quad \text{with probability } d
+\end{align*}
+
+Since the direction is read from the known solution, every added constraint
+is automatically satisfied by construction — no separate feasibility check
+is needed at this phase.
+
+The expected number of constraints added is:
+\[
+  \mathbb{E}[|\mathcal{I}|] = d \cdot \bigl(N(N-1) + N(N-1)\bigr) = 2dN(N-1)
+\]
+
+\begin{table}[h]
+  \centering
+  \caption{Constraint density parameters in the benchmark corpus.}
+  \label{tab:density}
+  \begin{tabular}{lccc}
+    \toprule
+    Difficulty & Density $d$ & $\mathbb{E}[|\mathcal{I}|]$ at $N=6$ & Fill ratio \\
+    \midrule
+    Easy   & 0.55 & 33.0 & 0.50 \\
+    Medium & 0.45 & 27.0 & 0.35 \\
+    Medium & 0.40 & 24.0 & 0.30 \\
+    Hard   & 0.35 & 21.0 & 0.22 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsubsection{Phase 3: Clue Removal (\texttt{create\_puzzle})}
+
+Starting from the complete solution grid, the generator removes given-clue
+cells one by one while preserving the \emph{unique-solution property}.
+
+\paragraph{Stopping criterion.}
+If a \texttt{target\_fill\_ratio} is specified, removal stops as soon as the
+number of remaining filled cells reaches $\lceil N^2 \cdot r \rceil$ where
+$r$ is the target ratio.
+This avoids over-removing clues beyond the desired difficulty level.
+
+\paragraph{Z3 uniqueness check.}
+Before confirming each removal, the generator calls
+\texttt{\_count\_solutions\_with\_base(solver, cells, grid, limit=2)}, which
+asks the Z3 solver to find at most 2 solutions to the current partial grid:
+
+\begin{enumerate}
+  \item A single \texttt{Solver} and $N^2$ Z3 integer variables are built
+        once at the start of Phase 3 (\texttt{\_build\_base\_solver}).
+        The base solver encodes: domain bounds, row and column \texttt{Distinct}
+        constraints, and all inequality constraints.
+        This model is \emph{shared} across all uniqueness checks.
+
+  \item For each candidate removal, a \texttt{solver.push()} saves the
+        current state, and the remaining given-cell assignments are added as
+        equality constraints.
+
+  \item The solver is invoked twice using a \emph{solution-blocking} loop:
+        after finding one solution, the negation of the full assignment
+        ($\bigvee_{r,c} (\texttt{cell}_{r,c} \ne v_{r,c})$) is added to
+        exclude it.
+        If a second \texttt{sat} is returned, the puzzle is ambiguous.
+
+  \item \texttt{solver.pop()} restores the base state for the next check.
+\end{enumerate}
+
+If the removal would leave $\ne 1$ solution, the cell is put back
+(\texttt{self.grid[r][c] = temp}).
+This guarantees that at termination \texttt{self.grid} is a valid puzzle
+with exactly one solution.
+
+\paragraph{Cell removal order.}
+Cells are shuffled randomly (seeded) before the removal loop.
+Row-major order would systematically expose more clues in later rows; random
+order spreads the given cells more evenly.
+
+\paragraph{Complexity.}
+Each removal attempt costs one Z3 invocation.
+In the worst case (no cells can be removed) there are $N^2$ attempts.
+In practice most cells are removable, so the loop runs on the order of $N^2$
+iterations with short Z3 queries.
+The \texttt{solver.push()/pop()} design avoids rebuilding the base model on
+every check, keeping each incremental query fast.
+
+\subsubsection{Benchmark Corpus Specification}
+
+The 24 benchmark puzzles are declared as a static list
+\texttt{BENCHMARK\_SPECS} at module level.
+Each entry records: \texttt{filename}, \texttt{size}, \texttt{seed},
+\texttt{fill\_ratio}, and \texttt{density}.
+
+\begin{table}[h]
+  \centering
+  \caption{Benchmark corpus structure.}
+  \label{tab:corpus}
+  \begin{tabular}{lcccc}
+    \toprule
+    Size & Easy & Medium (1) & Medium (2) & Hard \\
+    \midrule
+    $4 \times 4$ & \checkmark & \checkmark & \checkmark & \checkmark \\
+    $5 \times 5$ & \checkmark & \checkmark & \checkmark & \checkmark \\
+    $6 \times 6$ & \checkmark & \checkmark & \checkmark & \checkmark \\
+    $7 \times 7$ & \checkmark & \checkmark & \checkmark & \checkmark \\
+    $8 \times 8$ & \checkmark & \checkmark & \checkmark & \checkmark \\
+    $9 \times 9$ & \checkmark & \checkmark & \checkmark & \checkmark \\
+    \midrule
+    Total & 6 & 6 & 6 & 6 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Puzzles are indexed 01–24 in the order (size 4 easy, 4 medium1, 4 medium2,
+4 hard, 5 easy, \ldots, 9 hard) and seeded with $1000 + \text{index}$
+to ensure reproducibility across re-generation runs.
+
+% =============================================================================
+\subsection{Puzzle Repository}
+\label{sec:repository}
+
+\texttt{InMemoryPuzzleRepository} provides the application layer with two
+operations:
+
+\paragraph{Corpus listing (\texttt{list\_entries}).}
+On first call, the repository scans \texttt{resource/benchmark/input/} for
+\texttt{.txt} files matching the filename pattern
+\texttt{puzzle\_NN\_NxN\_difficulty.txt}.
+Each match produces a \texttt{PuzzleEntry} (frozen dataclass) recording the
+file path, stem name, grid size, and difficulty string.
+Entries are sorted by size ascending, then by difficulty order (easy $<$
+medium $<$ hard), then by name.
+The result is cached so subsequent calls pay no disk I/O.
+
+\paragraph{On-demand generation (\texttt{generate}).}
+The repository provides three named difficulty presets that map to
+\texttt{(fill\_ratio, density)} pairs:
+
+\begin{table}[h]
+  \centering
+  \caption{Difficulty presets for on-demand generation.}
+  \label{tab:difficulty_presets}
+  \begin{tabular}{lcc}
+    \toprule
+    Difficulty & Fill ratio & Density \\
+    \midrule
+    easy   & 0.55 & 0.50 \\
+    medium & 0.35 & 0.40 \\
+    hard   & 0.20 & 0.25 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+If no seed is supplied, a random integer in $[0, 999\,999]$ is chosen.
+After running the three generator phases,
+\texttt{\_generator\_to\_puzzle(gen)} converts the generator's internal
+representation (plain Python lists of integers) to a \texttt{Puzzle}:
+
+\begin{enumerate}
+  \item Wrap \texttt{gen.grid} in a NumPy array (dtype \texttt{int}).
+  \item Convert \texttt{gen.h\_const[r][c] \ne 0} entries to
+        \texttt{InequalityConstraint} objects with \texttt{direction="<"}
+        (when the value is $1$) or \texttt{">"} (when $-1$).
+  \item Do the same for \texttt{gen.v\_const}.
+  \item Construct and return a \texttt{Puzzle} whose post-init runs the
+        constraint lookup map and cached cell list.
+\end{enumerate}
+
+% =============================================================================
+\subsection{Validator}
+\label{sec:validator}
+
+\subsubsection{Validation Stages}
+
+\texttt{validate\_file(path, expected\_dir)} runs four checks in sequence,
+failing fast at the first error:
+
+\begin{enumerate}
+  \item \textbf{Parse.}
+        \texttt{Parser().parse(path)} — raises \texttt{ParseError} on
+        any syntactic problem (malformed line, wrong token count, out-of-range
+        value).
+
+  \item \textbf{Initial consistency (\texttt{\_initial\_validation}).}
+        Checks the given cells in the puzzle (before any solving):
+        \begin{itemize}
+          \item No duplicate value in any row among given cells.
+          \item No duplicate value in any column among given cells.
+          \item No given cell pair that already violates a horizontal or vertical
+                inequality constraint.
+        \end{itemize}
+        This is a fast $O(N^2 + |\mathcal{I}|)$ pass that catches obviously
+        broken inputs before paying the cost of a Z3 invocation.
+
+  \item \textbf{Uniqueness (\texttt{solve\_puzzle}).}
+        Builds a Z3 model (\texttt{\_build\_z3\_model}) encoding:
+        domain bounds, row/column \texttt{Distinct}, given-cell equalities,
+        and all inequality constraints.
+        Calls \texttt{solver.check()} up to \texttt{limit=2} times.
+        \begin{itemize}
+          \item 0 solutions → \texttt{"unsatisfiable puzzle"}.
+          \item 1 solution → pass.
+          \item 2 solutions → \texttt{"puzzle has multiple solutions"}.
+        \end{itemize}
+
+  \item \textbf{Expected-solution check} (optional, when \texttt{expected\_dir}
+        is provided):
+        \begin{itemize}
+          \item The expected file must exist at
+                \texttt{expected\_dir / path.name}.
+          \item Its grid must equal the Z3-computed solution
+                (\texttt{np.array\_equal}).
+          \item Its constraint signature must match the input file's
+                (\texttt{\_constraint\_signature} produces a sorted tuple of
+                \texttt{(cell1, cell2, direction)} triples from all constraints).
+        \end{itemize}
+\end{enumerate}
+
+\subsubsection{Z3 Model Construction (\texttt{\_build\_z3\_model})}
+
+The model is built identically in both the validator and the generator (the
+generator's \texttt{\_build\_base\_solver} is an equivalent reimplementation
+that also stores the constraint matrices before the puzzle object exists).
+
+\begin{lstlisting}[language=Python, caption={Z3 model core (simplified).}]
+solver = Solver()
+cells = [[Int(f"cell_{r}_{c}") for c in range(N)] for r in range(N)]
+
+for r, c in product(range(N), range(N)):
+    solver.add(cells[r][c] >= 1, cells[r][c] <= N)
+for r in range(N):
+    solver.add(Distinct(cells[r]))
+for c in range(N):
+    solver.add(Distinct([cells[r][c] for r in range(N)]))
+for row, col, v in puzzle.get_given_cells():
+    solver.add(cells[row][col] == v)
+for constraint in puzzle.h_constraints + puzzle.v_constraints:
+    r1, c1 = constraint.cell1
+    r2, c2 = constraint.cell2
+    if constraint.direction == "<":
+        solver.add(cells[r1][c1] < cells[r2][c2])
+    else:
+        solver.add(cells[r1][c1] > cells[r2][c2])
+\end{lstlisting}
+
+The solution-counting loop adds a \emph{blocking clause} after each found
+solution to exclude it from subsequent checks:
+\[
+  \bigvee_{r=0}^{N-1} \bigvee_{c=0}^{N-1}
+  \left( \texttt{cell}_{r,c} \ne v_{r,c} \right)
+\]
+This is the standard \emph{all-solutions enumeration} technique for SMT
+solvers.
+
+\subsubsection{Batch Validation (\texttt{validate\_path})}
+
+\texttt{validate\_path(path, expected\_dir)} accepts either a single file or
+a directory.
+For directories it uses \texttt{Path.rglob("*.txt")} to find all puzzle files
+recursively, sorts them, and calls \texttt{validate\_file} on each.
+Progress is printed with an ASCII progress bar.
+The function returns a list of \texttt{ValidationResult} dataclasses and
+exits with code 0 on full success or 1 on any failure.
+
+\subsubsection{Design Choice: Z3 over Project Solvers}
+
+The validator deliberately uses Z3 rather than one of the project's own
+solvers for uniqueness checking.
+The reasons are:
+
+\begin{enumerate}
+  \item \textbf{Independence}: a solver bug would not propagate into
+        benchmark corruption; the two code paths are completely separate.
+  \item \textbf{Completeness guarantee}: Z3's DPLL(T) engine is a complete
+        decision procedure for the linear arithmetic theory used here.
+        The project's constraint-propagation solvers may not terminate on
+        all inputs or may classify unsatisfiable puzzles as failures rather
+        than contradictions.
+  \item \textbf{All-solutions counting}: enumerating up to 2 solutions with
+        blocking clauses is natural in Z3 but would require significant
+        bookkeeping in a backtracking solver.
+\end{enumerate}
+
+The trade-off is an external dependency and start-up overhead per call, but
+since validation and generation are offline batch operations, this cost is
+acceptable.

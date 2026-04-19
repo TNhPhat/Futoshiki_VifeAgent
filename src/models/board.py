@@ -127,7 +127,7 @@ class Board:
 
     def get_hint(self) -> tuple[int, int, int] | None:
         """
-        Find a cell whose value is logically forced by AC3 domain reduction.
+        Find a cell whose value is logically forced by deterministic pruning.
 
         Returns (row, col, value) or None if no forced cell is found.
         The hint does NOT modify the board -- the caller decides whether to apply it.
@@ -142,20 +142,53 @@ class Board:
             v_constraints=list(self.puzzle.v_constraints),
         )
 
-        try:
-            domains = HornClauseGenerator._ac3_domains(tmp_puzzle)
-        except Exception:
-            return None
+        # Prefer stronger deterministic pruning first, then AC-3 fallback.
+        domain_builders = (
+            HornClauseGenerator.hidden_single_domains,
+            HornClauseGenerator._ac3_domains,
+        )
 
-        if domains is None:
-            return None
-
-        # Find any empty cell with a singleton domain.
-        for (r, c), dom in domains.items():
-            if self.grid[r, c] == 0 and len(dom) == 1:
-                return (r, c, next(iter(dom)))
+        for build_domains in domain_builders:
+            try:
+                domains = build_domains(tmp_puzzle)
+            except Exception:
+                continue
+            hint = self._choose_singleton_hint(domains)
+            if hint is not None:
+                return hint
 
         return None
+
+    def _choose_singleton_hint(
+        self,
+        domains: dict[tuple[int, int], set[int]] | None,
+    ) -> tuple[int, int, int] | None:
+        """
+        Pick a forced value from singleton domains.
+
+        Priority:
+        1) selected cell (if it is forced),
+        2) first forced cell in row-major order.
+        """
+        if not domains:
+            return None
+
+        singles: list[tuple[int, int, int]] = []
+        for (r, c), dom in domains.items():
+            if self.grid[r, c] == 0 and len(dom) == 1:
+                singles.append((r, c, next(iter(dom))))
+
+        if not singles:
+            return None
+
+        if self.selected is not None:
+            sr, sc = self.selected
+            for r, c, v in singles:
+                if (r, c) == (sr, sc):
+                    return (r, c, v)
+
+        singles.sort(key=lambda cell: (cell[0], cell[1]))
+        return singles[0]
 
     # ------------------------------------------------------------------
     # Completion check

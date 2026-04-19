@@ -1,0 +1,31 @@
+\documentclass{article}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{geometry}
+\geometry{margin=2cm, landscape}
+
+\begin{document}
+
+\begin{longtable}{@{}lccl r r r c@{}}
+  \caption{Benchmark results -- BruteForce} \label{tab:bruteforce} \\
+  \toprule
+  \textbf{Test Case} & \textbf{Size} & \textbf{Difficulty} & \textbf{Algorithm} & \textbf{Time (s)} & \textbf{Memory (KB)} & \textbf{Exp./Inf.} & \textbf{Completion} \\
+  \midrule
+  \endfirsthead
+  \multicolumn{8}{c}{\tablename\ \thetable{} -- continued} \\
+  \toprule
+  \textbf{Test Case} & \textbf{Size} & \textbf{Difficulty} & \textbf{Algorithm} & \textbf{Time (s)} & \textbf{Memory (KB)} & \textbf{Exp./Inf.} & \textbf{Completion} \\
+  \midrule
+  \endhead
+  \midrule
+  \multicolumn{8}{r}{\textit{Continued on next page}} \\
+  \endfoot
+  \bottomrule
+  \endlastfoot
+  \texttt{puzzle\_01\_4x4\_easy} & $4\times4$ & Easy & BruteForce & 2.5396 & 11.07 & 0 & 1.00 \\
+  \texttt{puzzle\_02\_4x4\_medium} & $4\times4$ & Medium & BruteForce & 29.3994 & 5.71 & 0 & 1.00 \\
+  \texttt{puzzle\_03\_4x4\_medium} & $4\times4$ & Medium & BruteForce & 411.1615 & 4.80 & 0 & 1.00 \\
+  \texttt{puzzle\_04\_4x4\_hard} & $4\times4$ & Hard & BruteForce & 573.6242 & 4.15 & 0 & 1.00 \\
+\end{longtable}
+
+\end{document}
