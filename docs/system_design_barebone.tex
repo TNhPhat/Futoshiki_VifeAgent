@@ -1,0 +1,514 @@
+\documentclass[11pt]{article}
+
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{xcolor}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  urlcolor=blue
+}
+
+\setlist[itemize]{noitemsep, topsep=3pt}
+\setlist[enumerate]{noitemsep, topsep=3pt}
+
+\title{Futoshiki VifeAgent system design}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{overview}
+
+This chapter describes the current structure of the Futoshiki VifeAgent
+repository. The code is built around one puzzle type, but it is used in several
+ways: solving puzzle files, running experiments, generating benchmark cases,
+validating results, and showing solver behaviour in an interactive UI.
+
+The repository compares brute force search, forward chaining, backward
+chaining, A* search, constraint propagation, and Z3-based validation. These
+parts share the same puzzle model. That is why the code is split into domain,
+logic, solver, UI, benchmark, and CLI packages instead of being organised around
+only one workflow.
+
+There are three user-facing workflows:
+
+\begin{itemize}
+  \item a pygame UI for playing puzzles, inspecting knowledge bases, and
+        watching solvers run step by step;
+  \item a solver CLI for solving one puzzle file or a folder of puzzle files;
+  \item benchmark tools for generating puzzles, validating the corpus, running
+        solvers, and plotting results.
+\end{itemize}
+
+The basic design choice is to keep the puzzle representation separate from the
+tools that use it. A \texttt{Puzzle} should not know whether pygame is showing
+it, a solver is working on it, Z3 is checking it, or the formatter is writing
+it to a file. The same domain object moves through all of those paths.
+
+The repository is organised by responsibility:
+
+\begin{verbatim}
+src/
+  core/                 Puzzle, Parser, Formatter
+  constraints/          inequality constraints and AC-3 support
+  fol/                  predicates, axioms, CNF and Horn knowledge bases
+  inference/            forward and backward chaining engines
+  heuristics/           A* heuristic functions
+  search/               A* state and search engine
+  solver/               BaseSolver and concrete solver classes
+  models/               board state, game state, puzzle repository
+  app/                  pygame application controller and input handling
+  ui/                   renderers, layout, theme
+  benchmark/            benchmark runner, generator, validator, plots
+  futoshiki_vifeagent/  package entry points and CLI wrappers
+\end{verbatim}
+
+A workflow-based layout was possible. We could have used separate folders for
+\texttt{play}, \texttt{solve}, and \texttt{benchmark}. That would read nicely
+at first, but parsing, formatting, solver selection, and validation would start
+appearing in several places. The repository uses more packages instead, with a
+clearer job for each one.
+
+\section{architecture and dependency direction}
+
+The dependency direction is simple. Domain and logic packages sit near the
+bottom. Application code sits near the top.
+
+\begin{verbatim}
+UI / CLI / benchmark
+        |
+      solver
+        |
+search, heuristics, inference
+        |
+   fol, constraints
+        |
+       core
+\end{verbatim}
+
+The lower packages do not import the UI, benchmark runner, or CLI. For example,
+\texttt{core} can be tested without pygame; \texttt{inference} can be tested
+without the puzzle generator; \texttt{solver} can be used by the CLI or by the
+UI without changing its public contract.
+
+The result is a useful boundary between "what the puzzle is" and "what we do
+with the puzzle." Core puzzle data and reasoning code stay independent from the
+runtime surfaces. The UI, CLI, and benchmark tools adapt that behaviour for
+different users, but they do not define the puzzle model itself.
+
+\section{core domain}
+
+\subsection{Puzzle as the problem definition}
+
+\texttt{Puzzle} is the central domain object. It stores:
+
+\begin{itemize}
+  \item the grid size \texttt{N};
+  \item a NumPy grid where \texttt{0} means empty and \texttt{1..N} are values;
+  \item horizontal and vertical \texttt{InequalityConstraint} objects;
+  \item cached lists of given cells and empty cells;
+  \item lookup maps for constraints between neighbouring cells.
+\end{itemize}
+
+\texttt{Puzzle} represents the problem, not the whole application state.
+Solvers receive a puzzle and return either a solved puzzle or \texttt{None}.
+The UI does not edit the original puzzle directly. It wraps the puzzle in
+\texttt{Board}, which keeps player edits, notes, selected cell state, errors,
+and undo history.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lll}
+\toprule
+Class & File & Role \\
+\midrule
+\texttt{Puzzle} & \texttt{core/puzzle.py} & Immutable puzzle definition \\
+\texttt{Parser} & \texttt{core/parser.py} & Reads puzzle text files \\
+\texttt{Formatter} & \texttt{core/formatter.py} & Renders puzzles for output \\
+\texttt{Board} & \texttt{models/board.py} & Mutable UI board state \\
+\texttt{SearchState} & \texttt{search/state.py} & A* node state \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+We could have made \texttt{Puzzle} mutable and let every subsystem edit it.
+That would reduce the number of classes, but it would blur the meaning of the
+grid. A grid could be the original puzzle, a player's partial attempt, or a
+temporary solver state. Keeping those meanings separate makes the code easier
+to reason about.
+
+\section{class hierarchy}
+
+Inheritance is used only where a caller really needs interchangeable
+implementations. Most objects are plain data objects or service classes.
+
+\subsection{solver hierarchy}
+
+\begin{verbatim}
+BaseSolver
+  BruteForceSolver
+  ForwardChaining
+  BackwardChaining
+  BacktrackingForwardChaining
+  ForwardThenBackwardChaining
+  AStarSolver
+\end{verbatim}
+
+All solvers implement the same contract:
+
+\begin{verbatim}
+solve(puzzle, on_step=None) -> (Puzzle | None, Stats)
+get_name() -> str
+\end{verbatim}
+
+The \texttt{on\_step} callback is optional. The CLI and benchmark runner ignore
+it. The UI uses it to animate assignments and backtracking.
+
+\subsection{heuristic hierarchy}
+
+\begin{verbatim}
+BaseHeuristic
+  EmptyCellHeuristic
+  DomainSizeHeuristic
+  MinConflictsHeuristic
+  AC3Heuristic
+\end{verbatim}
+
+\texttt{AStarSolver} receives a heuristic object instead of hard-coding one
+estimate. The A* engine stays stable, while experiments can swap in different
+heuristics.
+
+\subsection{constraint and renderer hierarchy}
+
+\begin{verbatim}
+BaseConstraint
+  RowUniqueness
+  ColUniqueness
+  InequalityConstraint
+
+BaseRenderer
+  CompositeRenderer
+  GridRenderer
+  ConstraintRenderer
+  HudRenderer
+\end{verbatim}
+
+\texttt{InequalityConstraint} is part of the puzzle definition. Row and column
+constraints mainly support AC-3 domain pruning. The renderer hierarchy is
+similarly shallow: the composite renderer controls draw order, and the concrete
+renderers draw the grid, inequality symbols, and HUD.
+
+A deeper object-oriented framework would make the hierarchy look more formal,
+but it would add little value here. The hierarchy is small enough to read
+directly.
+
+\section{FOL representation}
+
+The FOL package is the logical model of the repository. It translates a
+\texttt{Puzzle} into predicates, clauses, and knowledge bases that other code
+can use. It does not run solvers, draw the UI, read benchmark folders, or choose
+an algorithm.
+
+Its interface is small: a generator receives a \texttt{Puzzle} and returns a
+knowledge-base object. The caller decides whether to use that object for
+display, counting, forward chaining, or backward chaining. Runtime concerns
+stay outside the FOL layer.
+
+\subsection{Predicates and literals}
+
+\texttt{predicates.py} defines the vocabulary used by the logic layer. Common
+predicates include:
+
+\begin{itemize}
+  \item \texttt{Val(r,c,v)}: cell \texttt{(r,c)} has value \texttt{v};
+  \item \texttt{NotVal(r,c,v)}: cell \texttt{(r,c)} cannot have value
+        \texttt{v};
+  \item \texttt{Given(r,c,v)}: the puzzle provides a fixed value;
+  \item \texttt{Less}, \texttt{Geq}, and \texttt{Diff}: helper relations for
+        inequality and uniqueness rules.
+\end{itemize}
+
+These predicates are the interface between the puzzle domain and the reasoning
+code. They give the rest of the repository stable names for cell values, fixed
+clues, inequality relations, and value exclusions. The tradeoff is that the
+predicates are lower-level than the puzzle itself. A caller has to know what
+\texttt{Val} or \texttt{NotVal} means, but the inference engines get a clean
+input shape that is not tied to pygame or files.
+
+\subsection{Axioms and CNF knowledge base}
+
+\texttt{axioms.py} contains the rule schemas for the puzzle. The schemas cover
+the standard Futoshiki responsibilities:
+
+\begin{itemize}
+  \item each cell has a value in the domain;
+  \item a cell cannot contain two different values;
+  \item rows and columns cannot repeat values;
+  \item given cells must keep their value;
+  \item inequality constraints must hold between neighbouring cells.
+\end{itemize}
+
+\texttt{CNFGenerator} grounds these schemas for a concrete puzzle and stores
+the result in \texttt{CNFClauseKnowledgeBase}. The responsibility of this path
+is representation, not solving. It gives the UI and report code a consistent
+view of the logical constraints behind a puzzle.
+
+The tradeoff is readability versus direct execution. CNF is a familiar and
+compact way to display constraints, but the chaining engines do not use it
+directly. Keeping CNF separate avoids a forced universal clause format.
+
+\subsection{Horn knowledge bases}
+
+The repository has two Horn clause generators:
+
+\begin{itemize}
+  \item \texttt{HornClauseGenerator}, used by backward chaining. It creates a
+        goal-oriented knowledge base. Its public contract is
+        \texttt{generate(puzzle, domains=None, use\_cell\_domains=False)}
+        \(\rightarrow\) \texttt{HornClauseKnowledgeBase}.
+  \item \texttt{HornClauseGenerator2}, used by forward chaining. It creates
+        a propagation-oriented knowledge base. Its public contract is
+        \texttt{generate(puzzle)} \(\rightarrow\)
+        \texttt{HornClauseKnowledgeBase}.
+\end{itemize}
+
+Forward chaining needs local rules that can derive intermediate facts.
+Backward chaining needs a goal-oriented encoding for complete assignments. A
+single shared Horn encoding would either be too coarse for propagation or too
+fragmented for goal-directed search. The repository therefore keeps two Horn
+generators with the same domain meaning but different interfaces.
+
+\section{inference design}
+
+The inference package owns the rule-application engines. It does not know about
+files, pygame state, benchmark output, or puzzle formatting. It receives Horn
+clauses, facts, goals, and substitutions. It returns derived facts or
+substitutions.
+
+The boundary is straightforward. FOL generators decide how a Futoshiki puzzle
+becomes a Horn knowledge base. Inference engines decide how Horn data is used.
+Solvers sit above both layers and handle the path from puzzle to knowledge base
+to solved puzzle.
+
+\subsection{Forward chaining}
+
+\texttt{ForwardChainingEngine} receives a list of \texttt{HornClause} rules and
+a list of initial \texttt{Literal} facts. Its main method,
+\texttt{run()}, returns the final set of known facts. The engine is responsible
+for applying the rules to its fact store; it is not responsible for deciding
+which facts count as a solved Futoshiki board.
+
+\texttt{ForwardChainingEngine} consumes Horn rules and initial facts, then
+produces a saturated fact set. The \texttt{ForwardChaining} solver interprets
+those facts as puzzle assignments.
+
+\subsection{Backward chaining}
+
+\texttt{BackwardChainingEngine} receives a
+\texttt{HornClauseKnowledgeBase}. Its main methods accept one or more goal
+literals and return substitutions: \texttt{prove(goal)} handles one goal,
+\texttt{prove\_all(goals)} returns the first satisfying substitution, and
+\texttt{prove\_all\_solutions(goals)} yields satisfying substitutions.
+
+\texttt{BackwardChainingEngine} runs goal-directed inference over Horn clauses
+and returns satisfying substitutions through a generator-based interface. It is
+separate from puzzle-specific rule generation, so it can be tested without the
+Futoshiki encoding.
+
+\subsection{Why inference is separate from solvers}
+
+The solvers decide which knowledge base to build and how to translate the
+engine result back into a \texttt{Puzzle}. The engines decide only how to
+consume Horn data. This gives the code a concrete testing boundary: engine
+tests can use small artificial Horn programs, while solver tests can check
+puzzle-level behaviour.
+
+We could have put the inference loop directly inside each solver. That would
+reduce the number of files, but it would mix Futoshiki-specific rule
+generation, result conversion, and general inference mechanics. The code has
+more small classes this way, but each class has a clearer reason to change.
+
+\section{solvers and search}
+
+The solver layer is the common boundary used by the UI, CLI, and benchmark
+runner. Every solver returns a solution and a \texttt{Stats} object. The
+selected algorithm changes, but the caller does not.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lll}
+\toprule
+Key & Class & Main idea \\
+\midrule
+\texttt{brute\_force} & \texttt{BruteForceSolver} & enumerate possible assignments \\
+\texttt{forward\_chaining} & \texttt{ForwardChaining} & derive facts until stable \\
+\texttt{backward\_chaining} & \texttt{BackwardChaining} & prove a solution goal \\
+\texttt{backtracking\_forward\_chaining} & \texttt{BacktrackingForwardChaining} & propagation plus search \\
+\texttt{forward\_then\_backward\_chaining} & \texttt{ForwardThenBackwardChaining} & FC first, BC fallback \\
+\texttt{astar\_h1} & \texttt{AStarSolver} & A* with empty-cell heuristic \\
+\texttt{astar\_h2} & \texttt{AStarSolver} & A* with domain-size heuristic \\
+\texttt{astar\_h3} & \texttt{AStarSolver} & A* with conflict heuristic \\
+\texttt{astar\_h4} & \texttt{AStarSolver} & A* with AC-3-pruned domains \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Why several solvers exist}
+
+The repository exposes several solver families behind one shared interface
+because the report compares different reasoning and search strategies. The UI,
+CLI, and benchmark runner can use the same integration path while swapping the
+actual solver.
+
+The cost is extra registry work. The CLI, UI, and benchmark path each need a
+way to map user-facing solver keys to solver objects. The shared
+\texttt{BaseSolver} interface keeps that manageable.
+
+\subsection{Stats as a shared result shape}
+
+All solvers return a shared \texttt{Stats} structure, so the UI, CLI, and
+benchmark pipeline can report results in the same format. The fit is imperfect
+because different algorithms naturally expose different metrics, but one shared
+shape keeps the reporting layer simple.
+
+\section{UI design}
+
+The pygame UI uses three main objects:
+
+\begin{itemize}
+  \item \texttt{GameApplication}, which owns the main loop;
+  \item \texttt{GameState}, which owns mutable UI state;
+  \item \texttt{CompositeRenderer}, which draws the screen.
+\end{itemize}
+
+The UI has three modes:
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lll}
+\toprule
+Mode & Purpose & Main data \\
+\midrule
+\texttt{PLAY} & manual solving & board, notes, undo, errors \\
+\texttt{SOLVE} & solver animation & step queue, solver cells, stats \\
+\texttt{KB} & knowledge-base view & CNF clauses, scroll state, hover state \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Single owner of UI state}
+
+All mutable UI state lives in \texttt{GameState}. That object is large, but it
+has one advantage: the main thread owns the UI state. Solver workers do not
+write to it directly. They push \texttt{SolveStep} objects into a queue, and the
+main loop consumes the queue during rendering.
+
+We could have let solver threads update the board directly. That would be
+shorter, but it would make pygame state harder to protect. The queue-based
+model is slightly more code, but thread ownership is clearer.
+
+\subsection{Renderer split}
+
+Rendering is split into grid, constraint, and HUD renderers. Each renderer owns
+one part of the screen. The composite renderer owns draw order, so the rest of
+the application does not need to know which renderer runs first.
+
+The UI is not fully model-view-controller. That would be more formal, but it
+would also add more layers. The structure is simple enough for the project size
+and still keeps input, state, and rendering mostly separate.
+
+\section{generator and validator}
+
+The generator and validator support the benchmark workflow. They are not part
+of the solver interface because their job is different: produce and verify test
+data.
+
+\subsection{Generator}
+
+\texttt{FutoshikiGenerator} creates benchmark puzzles in three phases:
+
+\begin{enumerate}
+  \item build a full valid grid with recursive backtracking;
+  \item add inequality constraints using the completed solution;
+  \item remove clues while preserving a unique solution.
+\end{enumerate}
+
+During generation, search heuristics and Z3-based uniqueness checks keep puzzle
+construction practical and reliable.
+
+\subsection{Validator}
+
+\texttt{validator.py} parses benchmark files, checks obvious row, column, and
+inequality conflicts, builds a Z3 model, and counts solutions. It can also
+compare a puzzle against an expected solution file.
+
+Z3 is used here because benchmark validation should not trust the same solver
+being measured. If a solver contains a bug, the validator still needs to catch
+wrong output. The cost is an extra dependency and a second modelling style, but
+the independence is useful for benchmark checks.
+
+\section{CLI design}
+
+The package exposes a small command tree:
+
+\begin{itemize}
+  \item \texttt{futoshiki}, the top-level command;
+  \item \texttt{futoshiki solver}, the direct solver tool;
+  \item \texttt{futoshiki benchmark}, the benchmark tool group;
+  \item \texttt{futoshiki ui}, the pygame launcher.
+\end{itemize}
+
+The command split is:
+
+\begin{verbatim}
+uv run futoshiki solver <file-or-folder> [--solver KEY] [--output-dir DIR]
+uv run futoshiki benchmark run --solver KEY [--benchmark-root DIR] [--max-n N]
+uv run futoshiki benchmark generate [--benchmark-root DIR]
+uv run futoshiki benchmark validate <path> [--expected-dir DIR]
+uv run futoshiki benchmark visualize [--data-dir DIR] [--output-dir DIR] [--latex-dir DIR]
+uv run futoshiki ui
+\end{verbatim}
+
+\texttt{futoshiki solver} has one job. It receives either one \texttt{.txt}
+puzzle file or a folder of \texttt{.txt} files. For one file, it prints the
+solved board to standard output. For a folder, it writes
+\texttt{\_solution.txt} files into an output directory. The command stays close
+to the normal solver workflow: give it puzzle input, choose a solver if needed,
+and get solved boards back.
+
+\texttt{futoshiki benchmark} is a dispatcher for benchmark tools. It does not
+copy the argument parsers from \texttt{benchmark.py}, \texttt{generator.py},
+\texttt{validator.py}, or \texttt{visualize.py}. It forwards the remaining
+arguments to the selected tool, and that tool handles its own options, help
+text, and validation.
+
+The tradeoff is a small routing layer. Adding a new benchmark tool means adding
+the tool implementation and registering it in the benchmark command table. In
+return, the solver command stays simple, and benchmark scripts keep the
+interfaces they already expose.
+
+\section{design summary}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{p{0.28\linewidth}p{0.32\linewidth}p{0.32\linewidth}}
+\toprule
+Choice & Benefit & Cost \\
+\midrule
+Small \texttt{Puzzle} object & shared by parser, solvers, UI, and tests & needs wrapper objects for mutable workflows \\
+One \texttt{BaseSolver} interface & UI, CLI, and benchmark can swap solvers & one \texttt{Stats} shape cannot fit every algorithm perfectly \\
+Separate FOL and inference layers & rules and engines can be tested separately & more setup code and more objects \\
+Multiple solver families & supports comparison across AI/search strategies & registry and reporting code must stay in sync \\
+Worker thread for solver animation & UI remains responsive & queue and stop-event plumbing \\
+Z3 for generation and validation & independent uniqueness checks & extra dependency and separate modelling style \\
+Direct solver CLI, benchmark tool router & solver use is short, benchmark tools keep their own interfaces & new benchmark tools must be registered in the router \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\end{document}

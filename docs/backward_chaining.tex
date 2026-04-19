@@ -1,0 +1,258 @@
+% =============================================================================
+%  Backward Chaining
+% =============================================================================
+\section{Backward Chaining}
+\label{sec:backward_chaining}
+
+\subsection{Definition}
+
+Backward chaining is a \emph{goal-driven} inference algorithm.
+It begins with a query and tries to justify it from the knowledge base.
+Rather than deriving every fact that might be true, the algorithm asks a more
+direct question: what rule could prove this goal, and what would that rule
+require?
+
+The contrast with forward chaining is mostly about direction.
+Forward chaining starts from known facts and pushes them through rules until no
+new facts appear.
+Backward chaining starts from the desired conclusion and pulls it apart into
+smaller goals.
+A proof succeeds when those goals eventually reach facts already in the
+knowledge base.
+If one required sub-goal has no supporting fact or rule, that proof branch
+fails.
+
+% =============================================================================
+\subsection{Horn Clause Knowledge Base}
+
+A Horn knowledge base stores facts and rules as Horn clauses.
+Each rule has one conclusion, called the \emph{head}, and zero or more
+conditions, called the \emph{body}.
+For backward chaining, that single head is the important part.
+The prover receives a goal, looks for rules whose head matches it, and then
+uses the rule body as the next set of goals.
+
+\begin{equation}
+  H \leftarrow B_1 \land B_2 \land \cdots \land B_n
+\end{equation}
+
+In Prolog-style notation:
+
+\begin{verbatim}
+head :- body1, body2, ..., bodyn.
+\end{verbatim}
+
+Logically, this means:
+
+\begin{equation}
+  B_1 \land B_2 \land \cdots \land B_n \Rightarrow H.
+\end{equation}
+
+An empty body gives a fact:
+
+\begin{verbatim}
+Parent(alice, bob).
+\end{verbatim}
+
+A non-empty body gives a rule:
+
+\begin{verbatim}
+Ancestor(x, y) :- Parent(x, y).
+Ancestor(x, z) :- Parent(x, y), Ancestor(y, z).
+\end{verbatim}
+
+The first rule says that a parent is an ancestor.
+The second rule handles ancestry through another person.
+If the current goal is \texttt{Ancestor(alice, carol)}, the prover can match it
+against the head \texttt{Ancestor(x, z)}.
+After that match, the body says what remains to be shown:
+
+\begin{quote}
+To prove \texttt{Ancestor(x, z)}, prove \texttt{Parent(x, y)} and
+\texttt{Ancestor(y, z)}.
+\end{quote}
+
+Horn clauses fit this proof style more directly than a general clause
+knowledge base.
+A CNF clause is written as a disjunction:
+
+\begin{equation}
+  L_1 \lor L_2 \lor \cdots \lor L_k.
+\end{equation}
+
+CNF is useful for forward chaining and unit propagation.
+When a literal is known, clauses containing that literal are already satisfied,
+and clauses containing its negation can be shortened.
+If only one literal remains, the engine has found a new fact.
+That representation works well when known facts are being pushed through the
+whole clause set.
+
+Backward chaining works from the other end.
+It starts with a goal and asks which rule could conclude it.
+A general disjunction does not give one obvious conclusion to match against;
+several literals may be interpreted as candidates.
+Horn clauses avoid that problem by separating the conclusion from the
+conditions.
+They can also be indexed by head predicate, so a prover can inspect rules for
+\texttt{Ancestor(...)} without scanning unrelated rules first.
+
+% =============================================================================
+\subsection{SLD Resolution}
+
+SLD resolution is the usual proof procedure for definite Horn clauses.
+The resolver keeps a list of goals.
+It takes one goal, usually the leftmost one, and searches for a clause whose
+head can unify with it.
+When unification succeeds, the selected goal is replaced by the clause body.
+The proof then continues with this new goal list.
+If the branch fails, the resolver backtracks and tries another matching
+clause.
+
+Unification is the matching step.
+For example, the query
+
+\begin{verbatim}
+Ancestor(alice, z)
+\end{verbatim}
+
+unifies with the rule head
+
+\begin{verbatim}
+Ancestor(x, z)
+\end{verbatim}
+
+with the binding $x = alice$.
+That binding is then applied to the rule body, and the resolver continues with
+the resulting parent and ancestor sub-goals.
+
+Before a clause is used, its variables are renamed.
+This avoids accidental capture when the same rule is used more than once in a
+proof.
+This step is usually called \emph{standardization apart}.
+
+% =============================================================================
+\subsection{Pseudocode}
+
+\begin{algorithm}[h]
+\caption{Backward chaining over Horn clauses}
+\label{alg:backward_chaining}
+\begin{algorithmic}[1]
+\Require Knowledge base $KB$, goal list $G$, substitution $\theta$
+\Ensure A substitution proving all goals, or failure
+\Procedure{BackwardChaining}{$KB, G, \theta$}
+  \If{$G$ is empty}
+    \State \Return $\theta$
+  \EndIf
+  \State $g \gets \Call{Apply}{\theta, \Call{First}{G}}$
+  \State $R \gets \Call{Rest}{G}$
+  \ForAll{clause $C \in KB$ whose head predicate matches $g$}
+    \State $C' \gets \Call{StandardizeApart}{C}$
+    \State $\theta' \gets \Call{Unify}{g, \Call{Head}{C'}, \theta}$
+    \If{$\theta'$ is not failure}
+      \State $G' \gets \Call{Body}{C'} \mathbin{+\!\!+} R$
+      \State result $\gets \Call{BackwardChaining}{KB, G', \theta'}$
+      \If{result is not failure}
+        \State \Return result
+      \EndIf
+    \EndIf
+  \EndFor
+  \State \Return failure
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+The procedure above is a depth-first search through possible proof paths.
+Facts close a branch because they have no body to prove.
+Rules expand the selected goal into smaller goals.
+When one branch fails, the search backs up and tries another rule.
+
+% =============================================================================
+\subsection{Example}
+
+Take a $2 \times 2$ puzzle with one clue and one inequality:
+
+\[
+\begin{array}{ccc}
+1 & < & \cdot \\
+\cdot &   & \cdot
+\end{array}
+\]
+
+The top-left cell is already fixed to $1$.
+Because it must be smaller than the top-right cell, and the only values are
+$1$ and $2$, the top-right cell has to be $2$.
+Backward chaining reaches that result by asking for the value directly:
+
+\begin{verbatim}
+?- Val(0, 1, v)
+\end{verbatim}
+
+The proof only needs a few Horn clauses:
+
+\begin{verbatim}
+Val(0, 0, 1).
+
+NotVal(0, 1, 1) :- Val(0, 0, 1).
+Val(0, 1, 2)    :- NotVal(0, 1, 1).
+\end{verbatim}
+
+The fact records the clue.
+The first rule rules out value $1$ for the top-right cell, since $1 < 1$ is
+false.
+The second rule captures the tiny $2 \times 2$ domain: once value $1$ is ruled
+out, value $2$ is the only value left.
+
+The proof then runs backward from the query:
+
+\begin{enumerate}
+  \item Query \texttt{Val(0, 1, v)}.
+  \item Match it with the rule head \texttt{Val(0, 1, 2)}, giving $v = 2$.
+  \item Replace the original goal with \texttt{NotVal(0, 1, 1)}.
+  \item Prove \texttt{NotVal(0, 1, 1)} from the clue \texttt{Val(0, 0, 1)}.
+  \item Since \texttt{Val(0, 0, 1)} is already a fact, the branch succeeds.
+\end{enumerate}
+
+The returned substitution is $v = 2$.
+In this small case the answer is obvious by inspection, but the proof shows
+the normal backward chaining pattern: query one value, choose a rule that can
+conclude it, then prove the rule body.
+
+% =============================================================================
+\subsection{Behavior}
+
+Backward chaining works best when the program needs an answer to one specific
+query.
+It does not spend time deriving facts that have nothing to do with that query.
+That is why the method appears so often in logic programming, expert systems,
+and rule-based question answering.
+
+The cost is repeated search.
+The same sub-goal can be proved again on different branches unless the prover
+stores previous results.
+Recursive rules can also loop forever without some guard, such as a depth
+limit, cycle detection, or tabling.
+
+% =============================================================================
+\subsection{Complexity}
+
+Let $b$ be the average number of clauses that can match a selected goal, and
+let $d$ be the maximum proof depth.
+In the worst case, backward chaining explores a search tree of size
+
+\begin{equation}
+  O(b^d).
+\end{equation}
+
+The memory cost is smaller because the search is depth-first.
+Ignoring the knowledge base itself, the recursion stack grows with the proof
+depth:
+
+\begin{equation}
+  O(d).
+\end{equation}
+
+For definite Horn clauses, every successful proof is sound: the answer follows
+from the facts and rules in the knowledge base.
+Completeness depends on the search strategy.
+Depth limits and other safeguards prevent runaway recursion, but they may also
+cut off a valid proof.

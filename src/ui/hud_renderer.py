@@ -96,28 +96,42 @@ def _explain_literal(lit) -> list[str]:
         return [f"Value {v} is valid", f"for cell ({r+1},{c+1})."]
     if n == "LessH":
         r, c = args
+        if neg:
+            return [f"Horiz. constraint:", f"NOT (cell({r+1},{c+1}) < cell({r+1},{c+2}))."]
         return [f"Horiz. constraint:", f"cell({r+1},{c+1}) < cell({r+1},{c+2})."]
     if n == "GreaterH":
         r, c = args
+        if neg:
+            return [f"Horiz. constraint:", f"NOT (cell({r+1},{c+1}) > cell({r+1},{c+2}))."]
         return [f"Horiz. constraint:", f"cell({r+1},{c+1}) > cell({r+1},{c+2})."]
     if n == "LessV":
         r, c = args
+        if neg:
+            return [f"Vert. constraint:", f"NOT (cell({r+1},{c+1}) < cell({r+2},{c+1}))."]
         return [f"Vert. constraint:", f"cell({r+1},{c+1}) < cell({r+2},{c+1})."]
     if n == "GreaterV":
         r, c = args
+        if neg:
+            return [f"Vert. constraint:", f"NOT (cell({r+1},{c+1}) > cell({r+2},{c+1}))."]
         return [f"Vert. constraint:", f"cell({r+1},{c+1}) > cell({r+2},{c+1})."]
     if n == "Less":
         v1, v2 = args
+        if neg:
+            return [f"Numeric relation:", f"NOT ({v1} < {v2})."]
         return [f"Numeric relation:", f"{v1} < {v2}."]
     if n == "Geq":
         v1, v2 = args
-        return [f"Numeric relation:", f"{v2} \u2265 {v1}."]
+        if neg:
+            return [f"Numeric relation:", f"NOT ({v2} >= {v1})."]
+        return [f"Numeric relation:", f"{v2} >= {v1}."]
     if n == "Diff":
         a, b = args
-        return [f"Numeric relation:", f"{a} \u2260 {b}."]
+        if neg:
+            return [f"Numeric relation:", f"NOT ({a} != {b})."]
+        return [f"Numeric relation:", f"{a} != {b}."]
     if n == "Domain":
         return [f"Value {args[0]} is in", "the domain (1..N)."]
-    sign = "\u00ac" if neg else ""
+    sign = "~" if neg else ""
     return [f"{sign}{n}({','.join(str(a) for a in args)})"]
 
 
@@ -458,7 +472,7 @@ class HudRenderer(BaseRenderer):
 
             if facts:
                 end_idx = min(scroll + visible_rows, len(facts))
-                pos_txt = fnt_lbl.render(f"{scroll+1}\u2013{end_idx}/{len(facts)}",
+                pos_txt = fnt_lbl.render(f"{scroll+1}-{end_idx}/{len(facts)}",
                                          True, T.CLR_LABEL)
                 surface.blit(pos_txt, (up_rect.x - pos_txt.get_width() - 4, py + 2))
 
@@ -486,11 +500,11 @@ class HudRenderer(BaseRenderer):
                         fg = T.CLR_BTN_TEXT
                     else:
                         fg = T.CLR_LABEL
-                    sign     = "\u00ac" if lit.negated else " "
+                    sign     = "~" if lit.negated else " "
                     args_str = ",".join(str(a) for a in lit.args)
                     text     = f"{sign}{lit.name}({args_str})"
                     if len(text) > 22:
-                        text = text[:21] + "\u2026"
+                        text = text[:19] + "..."
                     lbl = fnt_lbl.render(text, True, fg)
                     surface.blit(lbl, (px + 4, py + (row_h - lbl.get_height()) // 2))
                     _draw_button(surface, q_rect, "?", fnt_btn,
@@ -515,7 +529,7 @@ class HudRenderer(BaseRenderer):
 
             if rules:
                 end_idx = min(scroll + visible_rows, len(rules))
-                pos_txt = fnt_lbl.render(f"{scroll+1}\u2013{end_idx}/{len(rules)}",
+                pos_txt = fnt_lbl.render(f"{scroll+1}-{end_idx}/{len(rules)}",
                                          True, T.CLR_LABEL)
                 surface.blit(pos_txt, (up_rect.x - pos_txt.get_width() - 4, py + 2))
 
@@ -558,6 +572,8 @@ class HudRenderer(BaseRenderer):
         if state.kb_hovered_clause is not None:
             _draw_label(surface, fnt_val, "CLAUSE", px, ipy, T.CLR_LABEL_TITLE)
             ipy += 18
+            _draw_label(surface, fnt_lbl, f"Rule: {_format_clause(state.kb_hovered_clause)}", px + 4, ipy)
+            ipy += 15
             for line in _explain_clause(state.kb_hovered_clause):
                 _draw_label(surface, fnt_lbl, line, px + 4, ipy)
                 ipy += 15
@@ -868,14 +884,14 @@ class HudRenderer(BaseRenderer):
 
 def _format_lit_short(lit) -> str:
     """Compact single-literal string for clause display rows."""
-    sign = "\u00ac" if lit.negated else ""
+    sign = "~" if lit.negated else ""
     n, args = lit.name, lit.args
     if n in ("Val", "NotVal", "Given", "ValidVal"):
-        return f"{sign}V({args[0]},{args[1]},{args[2]})"
+        return f"{sign}{n}({args[0]},{args[1]},{args[2]})"
     if n in ("LessH", "GreaterH", "LessV", "GreaterV"):
         return f"{sign}{n}({args[0]},{args[1]})"
     if n == "Less":
-        return f"{sign}L({args[0]},{args[1]})"
+        return f"{sign}Less({args[0]},{args[1]})"
     args_str = ",".join(str(a) for a in args)
     return f"{sign}{n}({args_str})"
 
@@ -883,9 +899,9 @@ def _format_lit_short(lit) -> str:
 def _format_clause(clause) -> str:
     """One-line representation of a multi-literal clause, truncated to ~30 chars."""
     parts = [_format_lit_short(l) for l in clause]
-    joined = " \u2228 ".join(parts)   # |
+    joined = " | ".join(parts)
     if len(joined) > 30:
-        joined = joined[:28] + "\u2026"
+        joined = joined[:27] + "..."
     return joined
 
 
@@ -959,30 +975,30 @@ _KB_POPUP_SECTIONS = [
     ("text",    "LessV(r,c)      Vertical:   cell(r,c) < cell(r+1,c)."),
     ("text",    "GreaterV(r,c)   Vertical:   cell(r,c) > cell(r+1,c)."),
     ("text",    "Less(a,b)       Numeric ordering: a < b."),
-    ("text",    "Diff(a,b)       Numeric:  a \u2260 b."),
+    ("text",    "Diff(a,b)       Numeric:  a != b."),
     ("text",    "Domain(v)       Value v is in 1..N."),
     ("sep",),
     ("heading", "AXIOM GROUPS"),
     ("text",    "A1  Each cell holds at least one value."),
-    ("text",    "    Val(r,c,1) \u2228 \u2026 \u2228 Val(r,c,N)"),
+    ("text",    "    Val(r,c,1) | ... | Val(r,c,N)"),
     ("text",    "A2  A cell cannot hold two different values."),
-    ("text",    "    \u00acVal(r,c,v1) \u2228 \u00acVal(r,c,v2)  for v1\u2260v2"),
+    ("text",    "    ~Val(r,c,v1) | ~Val(r,c,v2)  for v1!=v2"),
     ("text",    "A3  No value repeats in a row."),
-    ("text",    "    \u00acVal(r,c1,v) \u2228 \u00acVal(r,c2,v)  for c1\u2260c2"),
+    ("text",    "    ~Val(r,c1,v) | ~Val(r,c2,v)  for c1!=c2"),
     ("text",    "A4  No value repeats in a column."),
-    ("text",    "    \u00acVal(r1,c,v) \u2228 \u00acVal(r2,c,v)  for r1\u2260r2"),
+    ("text",    "    ~Val(r1,c,v) | ~Val(r2,c,v)  for r1!=r2"),
     ("text",    "A5-A8  Inequality constraints propagate values."),
-    ("text",    "    LessH(r,c) \u2228 \u00acVal(r,c,v) \u2228 \u00acVal(r,c+1,u)  for v\u2265u"),
+    ("text",    "    LessH(r,c) | ~Val(r,c,v) | ~Val(r,c+1,u)  for v>=u"),
     ("text",    "A9  Given clue cells are fixed."),
     ("text",    "    Val(r,c,v)  for each pre-filled cell"),
     ("text",    "A11 Numeric Less facts for all a<b."),
-    ("text",    "    Less(a,b)  for each pair 1\u2264a<b\u2264N"),
+    ("text",    "    Less(a,b)  for each pair 1<=a<b<=N"),
     ("text",    "A12/A13  Every value appears in every row/col."),
-    ("text",    "    Val(r,1,v) \u2228 \u2026 \u2228 Val(r,N,v)"),
+    ("text",    "    Val(r,1,v) | ... | Val(r,N,v)"),
     ("text",    "A14/A15  Less is irreflexive and asymmetric."),
-    ("text",    "    \u00acLess(a,a)     \u00acLess(a,b) \u2228 \u00acLess(b,a)"),
+    ("text",    "    ~Less(a,a)     ~Less(a,b) | ~Less(b,a)"),
     ("text",    "A16  Inequality contrapositive (forbidden pairs)."),
-    ("text",    "    \u00acLessH(r,c) \u2228 \u00acVal(r,c,v) \u2228 \u00acVal(r,c+1,u)  v\u2265u"),
+    ("text",    "    ~LessH(r,c) | ~Val(r,c,v) | ~Val(r,c+1,u)  v>=u"),
     ("sep",),
     ("heading", "HOW TO USE"),
     ("text",    "Hover a fact in the panel to highlight its cells"),
