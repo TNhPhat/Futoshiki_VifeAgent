@@ -198,26 +198,27 @@ def test_generate_test_puzzle():
     base = 352
 
     # Added by constraints:
+    #   Constraint facts: 4 inequality constraints -> 4 unit clauses
     #   A5: 1 LessV  constraint → N² = 16 clauses
     #   A6: 1 GreaterV constraint → N² = 16 clauses
     #   A7: 1 LessH  constraint → N² = 16 clauses
     #   A8: 1 GreaterH constraint → N² = 16 clauses
     #   A9: 2 givens → 2 unit clauses
     #   A16: 4 constraints x N(N+1)/2 = 4 x 10 = 40 clauses
-    extra = 16 + 16 + 16 + 16 + 2 + 40
-    expected = base + extra  # 352 + 106 = 458
+    extra = 4 + 16 + 16 + 16 + 16 + 2 + 40
+    expected = base + extra  # 352 + 110 = 462
     assert len(kb) == expected, (
         f"Test puzzle: {len(kb)} clauses != {expected}"
     )
 
-    # Facts: 10 base (Less + irrefl) + 2 given clue unit clauses = 12
+    # Facts: 10 base (Less + irrefl) + 2 given clues + 4 constraint facts = 16
     assert Val(0, 0, 1) in kb.facts, "Given Val(0,0,1) not in facts"
     assert Val(1, 1, 2) in kb.facts, "Given Val(1,1,2) not in facts"
     assert Less(1, 2) in kb.facts, "Less(1,2) not in facts"
     assert Less(3, 4) in kb.facts, "Less(3,4) not in facts"
     assert ~Less(1, 1) in kb.facts, "~Less(1,1) not in facts"
 
-    expected_facts = comb(N, 2) + N + 2  # 6 + 4 + 2 = 12
+    expected_facts = comb(N, 2) + N + 2 + 4  # 6 + 4 + 2 + 4 = 16
     assert len(kb.facts) == expected_facts, (
         f"Facts: {len(kb.facts)} != {expected_facts}"
     )
@@ -236,6 +237,7 @@ def test_generate_preserves_axiom_breakdown():
         "A2": len(Axioms.a2_cell_uniqueness(N)),
         "A3": len(Axioms.a3_row_uniqueness(N)),
         "A4": len(Axioms.a4_col_uniqueness(N)),
+        "ConstraintFacts": len(Axioms.a_constraint_facts(puzzle)),
         "A5": len(Axioms.a5_vertical_less(N, puzzle)),
         "A6": len(Axioms.a6_vertical_greater(N, puzzle)),
         "A7": len(Axioms.a7_horizontal_less(N, puzzle)),

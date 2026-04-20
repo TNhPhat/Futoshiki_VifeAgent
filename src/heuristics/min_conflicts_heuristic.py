@@ -5,8 +5,6 @@ For each unassigned cell, compute the minimum number of conflicts it
 would cause with *already-assigned* neighbours (same row, same column,
 or linked by an inequality constraint) across all values in its domain.
 Sum these per-cell minima.
-
-Verdict: [ok] Admissible, good for conflict-dense puzzles.
 """
 
 from __future__ import annotations

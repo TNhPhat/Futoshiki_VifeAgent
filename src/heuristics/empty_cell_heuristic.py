@@ -4,8 +4,6 @@ Heuristic h1: Empty Cell Count.
 The simplest admissible heuristic -- counts unassigned cells.
 Admissible because each empty cell requires at least one assignment
 step, and the best case for each step is zero new violations.
-
-Verdict: [ok] Admissible, but weak -- essentially makes A* behave like BFS.
 """
 
 from __future__ import annotations

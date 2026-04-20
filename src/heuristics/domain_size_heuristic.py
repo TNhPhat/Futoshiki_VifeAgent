@@ -4,8 +4,6 @@ Heuristic h2: Domain Sum Minus One.
 For each unassigned cell, contributes ``(|domain| - 1)`` to the total.
 A cell with a singleton domain (already determined) contributes 0;
 a cell with all N values still possible contributes N-1.
-
-Verdict: [ok] Admissible, more informed than h1.
 """
 
 from __future__ import annotations

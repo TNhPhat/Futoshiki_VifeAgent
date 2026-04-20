@@ -19,6 +19,7 @@ Expected clause count (derived from axiom formulas, N=3):
   A11 Less ground truth   :  C(N,2)          =  3
   A14 Less irreflexivity  :  N               =  3
   A15 Less asymmetry      :  C(N,2)          =  3
+  Constraint facts        :  3 constraints   =  3
   A7  LessH   (0,0)       :  N^2             =  9
   A8  GreaterH (2,1)      :  N^2             =  9
   A5  LessV   (1,1)       :  N^2             =  9
@@ -33,7 +34,8 @@ Expected facts (unit clauses):
   A9  : Val(0,0,2), Val(1,2,3), Val(2,1,1)  -> 3 positive
   A11 : Less(1,2), Less(1,3), Less(2,3)      -> 3 positive
   A14 : ~Less(1,1), ~Less(2,2), ~Less(3,3)  -> 3 negative
-  Total = 9 facts
+  Constraint facts: LessH(0,0), GreaterH(2,1), LessV(1,1) -> 3 positive
+  Total = 12 facts
 """
 
 import os
@@ -44,7 +46,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from core.parser import Parser
 from fol.cnf_generator import CNFGenerator
-from fol.predicates import Val, Less
+from fol.predicates import GreaterH, Less, LessH, LessV, Val
 
 FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures", "input_3x3.txt")
 
@@ -69,6 +71,7 @@ EXPECTED_CLAUSE_COUNT = (
     + comb(N, 2)             # A11
     + N                      # A14
     + comb(N, 2)             # A15
+    + 3                      # Constraint facts: LessH, GreaterH, LessV
     + N * N                  # A7  LessH at (0,0)
     + N * N                  # A8  GreaterH at (2,1)
     + N * N                  # A5  LessV at (1,1)
@@ -82,7 +85,8 @@ EXPECTED_FACT_COUNT = (
     len(GIVEN_CELLS)   # A9:  Val facts
     + comb(N, 2)       # A11: Less(a,b) for a<b
     + N                # A14: ~Less(v,v)
-)  # = 9
+    + 3                # Constraint facts: LessH, GreaterH, LessV
+)  # = 12
 
 
 def test_parser_returns_puzzle():
@@ -227,6 +231,15 @@ def test_kb_less_irreflexivity_facts():
     print(f"  [PASS] All ~Less(v,v) facts present ({N} literals)")
 
 
+def test_kb_constraint_facts_are_known():
+    """Constraint literals emitted by a_constraint_facts must be known facts."""
+    puzzle = Parser().parse(FIXTURE)
+    kb = CNFGenerator.generate(puzzle)
+    expected = {LessH(0, 0), GreaterH(2, 1), LessV(1, 1)}
+    assert expected.issubset(kb.get_facts())
+    print("  [PASS] All inequality constraint facts are known")
+
+
 def test_kb_get_facts_by_predicate_val():
     """get_facts_by_predicate('Val') returns exactly the given-clue facts."""
     puzzle = Parser().parse(FIXTURE)
@@ -282,6 +295,7 @@ if __name__ == "__main__":
     test_kb_empty_cells_not_known()
     test_kb_less_ground_truth_facts()
     test_kb_less_irreflexivity_facts()
+    test_kb_constraint_facts_are_known()
     test_kb_get_facts_by_predicate_val()
     test_kb_get_facts_by_predicate_less()
     test_kb_get_clauses_returns_all()
