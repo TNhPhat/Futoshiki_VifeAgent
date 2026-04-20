@@ -27,12 +27,6 @@ from utils import Stats
 
 FIXTURE_DIR = os.path.join(os.path.dirname(__file__), "fixtures")
 
-
-# ===========================================================================
-# Helpers
-# ===========================================================================
-
-
 def make_puzzle(N, grid, h=None, v=None):
     h_constraints = [
         InequalityConstraint(cell1=(r, c), cell2=(r, c + 1), direction=d)
@@ -78,11 +72,6 @@ def _check_solution(puzzle, solved):
         if not c.is_satisfied(solved):
             return False
     return True
-
-
-# ===========================================================================
-# Group 1 — AC3Propagator unit tests
-# ===========================================================================
 
 
 class TestAC3PropagatorBasics:
@@ -233,12 +222,6 @@ class TestAC3PropagatorRevise:
         assert AC3Propagator._satisfies(2, 2, mask) is False  # fails NEQ
         assert AC3Propagator._satisfies(3, 1, mask) is False  # fails LT
 
-
-# ===========================================================================
-# Group 2 — AC3Heuristic unit tests
-# ===========================================================================
-
-
 class TestAC3Heuristic:
     def setup_method(self):
         self.h = AC3Heuristic()
@@ -292,12 +275,6 @@ class TestAC3Heuristic:
         h_val = self.h.estimate(state, puzzle)
         # Contradiction → large penalty (N³ = 8)
         assert h_val >= puzzle.N * puzzle.N * puzzle.N
-
-
-# ===========================================================================
-# Group 3 — AStarSolver + h₄ end-to-end
-# ===========================================================================
-
 
 class TestAStarSolverH4_2x2:
     """2x2 puzzles with AC-3 heuristic."""
@@ -393,12 +370,6 @@ class TestAStarSolverH4_4x4:
         assert solution.grid[0, 0] < solution.grid[0, 1]
         assert solution.grid[0, 0] < solution.grid[1, 0]
 
-
-# ===========================================================================
-# Group 4 — Unsolvable puzzles
-# ===========================================================================
-
-
 class TestAStarH4Unsolvable:
     def test_contradictory_givens(self):
         """Same value in same row → no solution."""
@@ -430,12 +401,6 @@ class TestAStarH4Unsolvable:
         solution, _ = solver.solve(impossible)
         assert solution is None
 
-
-# ===========================================================================
-# Group 5 — Stats
-# ===========================================================================
-
-
 class TestAStarH4Stats:
     def test_returns_tuple(self):
         puzzle = make_puzzle(2, [[1, 0], [0, 0]])
@@ -460,12 +425,6 @@ class TestAStarH4Stats:
         assert "h4" in solver.get_name()
         assert "A*" in solver.get_name()
 
-
-# ===========================================================================
-# Group 6 — h₄ fewer expansions than h₂ (comparative)
-# ===========================================================================
-
-
 class TestH4VsH2Expansions:
     """AC-3 pruning should produce fewer or equal node expansions."""
 
@@ -481,11 +440,6 @@ class TestH4VsH2Expansions:
         _, stats_h4 = AStarSolver(AC3Heuristic()).solve(puzzle)
 
         assert stats_h4.node_expansions <= stats_h2.node_expansions
-
-
-# ===========================================================================
-# Runner
-# ===========================================================================
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

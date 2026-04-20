@@ -22,10 +22,6 @@ class Axioms:
     All cell values ``v`` are 1-based (range ``1..N``).
     """
 
-    # ==============================================================
-    # Cell Constraints
-    # ==============================================================
-
     @staticmethod
     def a1_cell_existence(N: int) -> list[Clause]:
         """
@@ -75,10 +71,6 @@ class Axioms:
                 for v1, v2 in combinations(range(1, N + 1), 2):
                     clauses.append([~Val(i, j, v1), ~Val(i, j, v2)])
         return clauses
-
-    # ==============================================================
-    # Permutation Constraints
-    # ==============================================================
 
     @staticmethod
     def a3_row_uniqueness(N: int) -> list[Clause]:
@@ -183,10 +175,6 @@ class Axioms:
                 clause = [Val(i, j, v) for i in range(N)]
                 clauses.append(clause)
         return clauses
-
-    # ==============================================================
-    # Inequality Constraints
-    # ==============================================================
 
     @staticmethod
     def a5_vertical_less(N: int, puzzle: Puzzle) -> list[Clause]:
@@ -372,10 +360,6 @@ class Axioms:
             clauses.append([LessV(i, j) if c.direction == "<" else GreaterV(i, j)])
         return clauses
 
-    # ==============================================================
-    # Clues & Domain
-    # ==============================================================
-
     @staticmethod
     def a9_given_clues(N: int, puzzle: "Puzzle") -> list[Clause]:
         """
@@ -415,10 +399,6 @@ class Axioms:
             Always an empty list.
         """
         return []
-
-    # ==============================================================
-    # Less Relation Definition
-    # ==============================================================
 
     @staticmethod
     def a11_less_ground_truth(N: int) -> list[Clause]:
@@ -490,10 +470,6 @@ class Axioms:
         for v1, v2 in combinations(range(1, N + 1), 2):
             clauses.append([~Less(v1, v2), ~Less(v2, v1)])
         return clauses
-
-    # ==============================================================
-    # Inequality Contrapositive
-    # ==============================================================
 
     @staticmethod
     def a16_inequality_contrapositive(

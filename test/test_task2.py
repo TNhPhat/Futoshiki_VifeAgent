@@ -16,11 +16,6 @@ from core.puzzle import Puzzle
 from constraints.inequality_constraint import InequalityConstraint
 
 
-# ==================================================================
-# Helpers
-# ==================================================================
-
-
 def make_empty_puzzle(N: int) -> Puzzle:
     """Create an NxN puzzle with no givens and no constraints."""
     return Puzzle(
@@ -57,11 +52,6 @@ def make_test_puzzle(N: int) -> Puzzle:
             InequalityConstraint(cell1=(2, 0), cell2=(3, 0), direction=">"),
         ],
     )
-
-
-# ==================================================================
-# Tests
-# ==================================================================
 
 
 def test_kb_basics():
@@ -270,11 +260,6 @@ def test_generate_preserves_axiom_breakdown():
     print(f"  [PASS] Axiom breakdown matches KB total ({total_from_axioms})")
     for name, count in counts.items():
         print(f"         {name}: {count}")
-
-
-# ==================================================================
-# Main
-# ==================================================================
 
 if __name__ == "__main__":
     print("=== Task 2 Tests ===\n")

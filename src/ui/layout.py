@@ -9,22 +9,13 @@ from __future__ import annotations
 
 import pygame
 
-# ---------------------------------------------------------------------------
-# Window dimensions
-# ---------------------------------------------------------------------------
-
 SCREEN_W: int = 900
 SCREEN_H: int = 680
-
-# ---------------------------------------------------------------------------
-# Title / tab bar
-# ---------------------------------------------------------------------------
 
 TITLE_BAR_H: int = 50
 
 TITLE_BAR_RECT = pygame.Rect(0, 0, SCREEN_W, TITLE_BAR_H)
 
-# Mode-tab buttons (Play / Solve / Menu) -- positioned in the title bar
 TAB_W:  int = 80
 TAB_H:  int = 32
 TAB_Y:  int = (TITLE_BAR_H - TAB_H) // 2
@@ -32,10 +23,6 @@ TAB_Y:  int = (TITLE_BAR_H - TAB_H) // 2
 TAB_PLAY_RECT  = pygame.Rect(SCREEN_W - 3 * (TAB_W + 6) - 10, TAB_Y, TAB_W, TAB_H)
 TAB_SOLVE_RECT = pygame.Rect(SCREEN_W - 2 * (TAB_W + 6) - 10, TAB_Y, TAB_W, TAB_H)
 TAB_MENU_RECT  = pygame.Rect(SCREEN_W - 1 * (TAB_W + 6) - 10, TAB_Y, TAB_W, TAB_H)
-
-# ---------------------------------------------------------------------------
-# Main areas
-# ---------------------------------------------------------------------------
 
 SIDE_PANEL_W: int = 260
 SIDE_PANEL_PADDING: int = 10
@@ -54,12 +41,6 @@ SIDE_PANEL_RECT = pygame.Rect(
     SCREEN_H - TITLE_BAR_H,
 )
 
-# ---------------------------------------------------------------------------
-# Side-panel sub-sections  (solver / puzzle / play)
-# The panel is divided into three stacked sections.
-# Heights are approximate; HudRenderer clips as needed.
-# ---------------------------------------------------------------------------
-
 _px = SIDE_PANEL_RECT.x
 _py = SIDE_PANEL_RECT.y
 _pw = SIDE_PANEL_W
@@ -67,10 +48,6 @@ _pw = SIDE_PANEL_W
 SOLVER_PANEL_RECT = pygame.Rect(_px, _py,           _pw, 185)
 PUZZLE_PANEL_RECT = pygame.Rect(_px, _py + 185,     _pw, 265)
 PLAY_PANEL_RECT   = pygame.Rect(_px, _py + 185+265, _pw, SCREEN_H - TITLE_BAR_H - 185 - 265)
-
-# ---------------------------------------------------------------------------
-# Grid geometry helpers
-# ---------------------------------------------------------------------------
 
 # Gaps between cells (for constraint symbols)
 CONSTRAINT_GAP: int = 18   # pixels reserved between adjacent cells for symbols

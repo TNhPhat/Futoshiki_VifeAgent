@@ -46,10 +46,6 @@ from core.parser import Parser
 from fol.cnf_generator import CNFGenerator
 from fol.predicates import Val, Less
 
-# ---------------------------------------------------------------------------
-# Fixture path
-# ---------------------------------------------------------------------------
-
 FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures", "input_3x3.txt")
 
 N = 3
@@ -87,11 +83,6 @@ EXPECTED_FACT_COUNT = (
     + comb(N, 2)       # A11: Less(a,b) for a<b
     + N                # A14: ~Less(v,v)
 )  # = 9
-
-
-# ===========================================================================
-# Stage 1: Parser -> Puzzle
-# ===========================================================================
 
 
 def test_parser_returns_puzzle():
@@ -174,11 +165,6 @@ def test_puzzle_v_constraints():
     assert puzzle.get_v_constraint(0, 0) is None, "No constraint at (0,0)"
     assert puzzle.get_v_constraint(1, 0) is None, "No constraint at (1,0)"
     print("  [PASS] v_constraints match fixture")
-
-
-# ===========================================================================
-# Stage 2: Puzzle -> CNFClauseKnowledgeBase
-# ===========================================================================
 
 
 def test_kb_total_clause_count():
@@ -273,11 +259,6 @@ def test_kb_get_clauses_returns_all():
     kb = CNFGenerator.generate(puzzle)
     assert len(kb.get_clauses()) == len(kb)
     print(f"  [PASS] get_clauses() length == len(kb) == {len(kb)}")
-
-
-# ===========================================================================
-# Runner
-# ===========================================================================
 
 
 if __name__ == "__main__":

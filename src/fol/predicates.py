@@ -58,14 +58,7 @@ class Literal:
         return f"{prefix}{self.name}({args_str})"
 
 
-# Type alias: a CNF clause is a disjunction of literals.
 Clause = list[Literal]
-
-
-# ------------------------------------------------------------------
-# Factory functions -- thin wrappers for readability
-# ------------------------------------------------------------------
-
 
 def Val(i, j, v) -> Literal:
     """

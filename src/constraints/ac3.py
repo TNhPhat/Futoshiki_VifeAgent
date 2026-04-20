@@ -42,10 +42,6 @@ class AC3Propagator:
     uses the same representation as ``AStarEngine`` / ``SearchState``.
     """
 
-    # ------------------------------------------------------------------
-    # Public API
-    # ------------------------------------------------------------------
-
     @staticmethod
     def propagate(
         domains: dict[tuple[int, int], set[int]] | None,
@@ -74,7 +70,6 @@ class AC3Propagator:
         N = puzzle.N
         empty_set = set(domains.keys())
 
-        # --- build constraint graph -----------------------------------------
         constraints: dict[
             tuple[tuple[int, int], tuple[int, int]], int
         ] = {}
@@ -149,7 +144,6 @@ class AC3Propagator:
                 if not domains[b]:
                     return None
 
-        # --- AC-3 main loop --------------------------------------------------
         queue: deque[tuple[tuple[int, int], tuple[int, int]]] = deque(
             constraints.keys()
         )
@@ -166,10 +160,6 @@ class AC3Propagator:
                         queue.append((xk, xi))
 
         return domains
-
-    # ------------------------------------------------------------------
-    # Private helpers
-    # ------------------------------------------------------------------
 
     @staticmethod
     def _revise(

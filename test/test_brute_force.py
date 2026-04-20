@@ -37,11 +37,6 @@ FIXTURE_SOLUTION = np.array([
 ], dtype=int)
 
 
-# ===========================================================================
-# Helpers
-# ===========================================================================
-
-
 def make_puzzle(N: int, grid: list[list[int]],
                 h: list[tuple] = [],
                 v: list[tuple] = []) -> Puzzle:
@@ -84,11 +79,6 @@ def _check_solution(puzzle: Puzzle, solved: Puzzle) -> bool:
     return True
 
 
-# ===========================================================================
-# Group 1 — Solver identity
-# ===========================================================================
-
-
 def test_solver_name():
     assert BruteForceSolver().get_name() == "BruteForce"
 
@@ -100,11 +90,6 @@ def test_solve_returns_tuple():
     solution, stats = result
     assert solution is None or isinstance(solution, Puzzle)
     assert isinstance(stats, Stats)
-
-
-# ===========================================================================
-# Group 2 — Trivial / edge cases
-# ===========================================================================
 
 
 def test_already_complete_valid():
@@ -136,11 +121,6 @@ def test_single_empty_cell():
     assert solution is not None
     assert solution.grid[2, 2] == 2
     assert stats.node_expansions <= 3  # tries at most N values
-
-
-# ===========================================================================
-# Group 3 — Correctness on small puzzles
-# ===========================================================================
 
 
 def test_2x2_no_constraints():
@@ -310,11 +290,6 @@ def test_5x5_with_constraints():
     assert solution.grid[3, 4] < solution.grid[4, 4]
 
 
-# ===========================================================================
-# Group 4 — Solution properties
-# ===========================================================================
-
-
 def test_no_empty_cells():
     """The returned grid must have no zeros."""
     puzzle = Parser().parse(FIXTURE)
@@ -366,11 +341,6 @@ def test_given_cells_preserved():
             f"Given cell ({i},{j}) expected {v}, got {solution.grid[i, j]}"
 
 
-# ===========================================================================
-# Group 5 — Unsolvable puzzles
-# ===========================================================================
-
-
 def test_contradictory_givens():
     """Two cells in the same row with the same value — no solution exists."""
     # Row 0: [1, 1, ?] — row duplicate, unsolvable
@@ -406,11 +376,6 @@ def test_impossible_inequality_chain():
     assert solution is None
 
 
-# ===========================================================================
-# Group 6 — Stats
-# ===========================================================================
-
-
 def test_stats_time_positive():
     puzzle = Parser().parse(FIXTURE)
     _, stats = BruteForceSolver().solve(puzzle)
@@ -435,11 +400,6 @@ def test_stats_inference_and_backtracks_zero():
     _, stats = BruteForceSolver().solve(puzzle)
     assert stats.inference_count == 0
     assert stats.backtracks == 0
-
-
-# ===========================================================================
-# Runner
-# ===========================================================================
 
 if __name__ == "__main__":
     tests = [

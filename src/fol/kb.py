@@ -25,9 +25,6 @@ class CNFClauseKnowledgeBase:
     clauses: list[Clause] = field(default_factory=list)
     facts: set[Literal] = field(default_factory=set)
 
-    # ------------------------------------------------------------------
-    # Mutators
-    # ------------------------------------------------------------------
 
     def add_clause(self, clause: Clause) -> None:
         """
@@ -79,10 +76,6 @@ class CNFClauseKnowledgeBase:
             lit = clause[0]
             if not any(len(c) == 1 and c[0] == lit for c in self.clauses):
                 self.facts.discard(lit)
-
-    # ------------------------------------------------------------------
-    # Queries
-    # ------------------------------------------------------------------
 
     def get_unit_clauses(self) -> list[Clause]:
         """
@@ -167,10 +160,6 @@ class CNFClauseKnowledgeBase:
             All facts ``f`` where ``f.name == name``.
         """
         return [f for f in self.facts if f.name == name]
-
-    # ------------------------------------------------------------------
-    # Dunder methods
-    # ------------------------------------------------------------------
 
     def __len__(self) -> int:
         """Return the total number of clauses in the knowledge base."""

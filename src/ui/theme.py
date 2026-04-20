@@ -6,9 +6,6 @@ from __future__ import annotations
 
 import pygame
 
-# ---------------------------------------------------------------------------
-# Colours  (R, G, B)
-# ---------------------------------------------------------------------------
 
 CLR_BG            = (245, 245, 240)   # app background
 CLR_PANEL_BG      = (230, 230, 225)   # side-panel background
@@ -50,11 +47,6 @@ CLR_TAB_ACTIVE    = (100, 140, 220)
 CLR_TAB_INACTIVE  = (200, 200, 195)
 CLR_TAB_TEXT      = (255, 255, 255)
 CLR_TAB_TEXT_INACT= (60,  60,  60)
-
-# ---------------------------------------------------------------------------
-# Font helpers  (lazy-initialised so pygame.init() need not be called at
-# import time; call init_fonts() once after pygame.init())
-# ---------------------------------------------------------------------------
 
 _fonts: dict[str, pygame.font.Font] = {}
 

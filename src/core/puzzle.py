@@ -32,7 +32,7 @@ class Puzzle:
     """
 
     N: int
-    grid: np.ndarray                        # shape: (N, N)
+    grid: np.ndarray
     h_constraints: list[InequalityConstraint]
     v_constraints: list[InequalityConstraint]
 
@@ -44,7 +44,6 @@ class Puzzle:
         default_factory=dict, init=False, repr=False
     )
 
-    # Cached cell lists -- computed once in __post_init__, not constructor args
     _given_cells: list[tuple[int, int, int]] = field(
         default_factory=list, init=False, repr=False
     )
@@ -70,10 +69,6 @@ class Puzzle:
             (int(r), int(c))
             for r, c in zip(empty_rows, empty_cols)
         ]
-
-    # ------------------------------------------------------------------
-    # Cell queries
-    # ------------------------------------------------------------------
 
     def is_complete(self) -> bool:
         """
@@ -130,10 +125,6 @@ class Puzzle:
         """
         return self._empty_cells
 
-    # ------------------------------------------------------------------
-    # Constraint queries
-    # ------------------------------------------------------------------
-
     def get_h_constraint(
         self, i: int, j: int
     ) -> InequalityConstraint | None:
@@ -176,10 +167,6 @@ class Puzzle:
         """
         return self._v_map.get((i, j))
 
-    # ------------------------------------------------------------------
-    # Copy
-    # ------------------------------------------------------------------
-
     def copy(self) -> Puzzle:
         """
         Return a deep copy of this puzzle with an independent grid array.
@@ -198,10 +185,6 @@ class Puzzle:
             h_constraints=list(self.h_constraints),
             v_constraints=list(self.v_constraints),
         )
-
-    # ------------------------------------------------------------------
-    # Debug representation
-    # ------------------------------------------------------------------
 
     def __repr__(self) -> str:
         """

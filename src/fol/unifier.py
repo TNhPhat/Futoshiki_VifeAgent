@@ -1,10 +1,8 @@
 from .predicates import Literal
 from typing import Dict, Optional, List, Any
 
-
 # A Substitution maps variable names (lowercase strings) to values
 Substitution = Dict[str, Any]
-
 
 class Unifier:
     """Unifies two Literal objects by matching their arguments.

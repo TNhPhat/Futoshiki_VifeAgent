@@ -44,10 +44,6 @@ def start_solve(state: GameState) -> None:
     # Mutable stats shared between the closures.
     _stats: dict = {"nodes": 0, "backtracks": 0, "prev_grid": None}
 
-    # ------------------------------------------------------------------
-    # Internal helpers
-    # ------------------------------------------------------------------
-
     def _emit(grid: np.ndarray, is_bt: bool) -> None:
         """Push one SolveStep and throttle to state.speed steps/second."""
         _stats["nodes"] += 1
@@ -102,10 +98,6 @@ def start_solve(state: GameState) -> None:
                 for r, c in newly_filled:
                     running[r, c] = grid_snapshot[r, c]
                     _emit(running, is_bt=False)
-
-    # ------------------------------------------------------------------
-    # Worker thread body
-    # ------------------------------------------------------------------
 
     def worker() -> None:
         try:

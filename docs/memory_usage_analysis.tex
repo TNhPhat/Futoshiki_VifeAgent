@@ -1,71 +1,90 @@
 \section{Memory Usage Analysis}
 \label{sec:memory_usage_analysis}
 
-The memory chart uses the \texttt{memory\_kb} column from the CSV files in
-\texttt{resource/output}. This value comes from each solver's reported peak
-memory during the run, so it should be read as a solver-side memory signal
-rather than full operating-system process memory.
+The memory plot is drawn on a logarithmic scale, so it should not be read like a
+normal line chart. A small-looking rise near \(10\) KB is not the same as a
+small-looking rise near \(10{,}000\) KB. The useful question is usually not
+"which line is a little higher?", but "has this solver moved into a different
+order of magnitude?" Table~\ref{tab:memory_usage_summary} gives the values used
+for the discussion below.
 
-Memory mostly rises with puzzle size. Across all CSV rows, the average memory
-increases from about \(52.88\) KB on the \(4 \times 4\) puzzles to about
-\(1961.85\) KB on the \(9 \times 9\) puzzles. That trend is expected: larger
-boards create larger grids, larger domains, more constraints, and more
-intermediate state. The increase is not perfectly smooth, because puzzle
-difficulty and solver behaviour matter as much as board size. The \(8 \times 8\)
-group is a good example. Its average is pushed up by one very large A* h3 run
-on \texttt{puzzle\_20\_8x8\_hard}.
+\begin{table}[htbp]
+  \centering
+  \caption{Average and peak memory usage by solver}
+  \label{tab:memory_usage_summary}
+  \begin{tabular}{lrr}
+    \toprule
+    Solver & Mean memory (KB) & Peak memory (KB) \\
+    \midrule
+    BruteForce & 6.43 & 11.07 \\
+    A* h4: AC-3 pruned domain sum & 76.39 & 302.70 \\
+    A* h1: empty cells & 92.03 & 485.05 \\
+    A* h2: domain sum & 97.79 & 533.65 \\
+    Forward chaining: data-driven fix-point & 285.23 & 603.54 \\
+    Backtracking + forward chaining & 977.37 & 4734.27 \\
+    Forward chaining \(\rightarrow\) backward chaining & 1200.26 & 6422.41 \\
+    A* h3: min conflicts & 1537.23 & 20917.83 \\
+    Backward chaining: generate-and-test SLD & 2106.31 & 7329.70 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
 
-Among the A* solvers, h1 and h2 stay close to each other. Their average memory
-usage is about \(92.03\) KB and \(97.79\) KB respectively. Both also stay below
-roughly \(535\) KB in this benchmark set. The h4 solver uses more memory than
-h1 and h2 on small puzzles because AC-3 keeps extra domain information, but it
-scales more calmly on larger puzzles. Its average is about \(76.39\) KB, with a
-maximum of about \(302.70\) KB. In this chart, h4 pays for propagation, but it
-avoids the large memory spikes seen in h3.
+Memory mostly grows with board size, as expected. A larger Futoshiki board has
+more cells, wider domains, and more inequality constraints to keep track of. The
+growth is not perfectly smooth, though. Puzzle difficulty changes the amount of
+work, and each solver stores a different kind of state while it runs. The hard
+\(8 \times 8\) case makes this clear: A* h3 rises to about \(20\) MB, far above
+the rest of the A* results.
 
-The h3 heuristic is the outlier. Its average memory is about \(1537.23\) KB,
-but that number is not representative of every row. On small boards it behaves
-like the other A* variants. The problem appears on harder larger puzzles, where
-the open search state grows sharply. The largest value in the whole chart is
-\texttt{puzzle\_20\_8x8\_hard} with h3, at about \(20917.83\) KB. This suggests
-that the min-conflicts heuristic can guide some cases well, but when it fails
-to keep the frontier small, memory usage becomes expensive quickly.
+Among the A* solvers, h1, h2, and h4 are the more memory-friendly choices. H1
+and h2 are close together, averaging about \(92\) KB and \(98\) KB. H4 is even
+steadier in this test: it averages about \(76\) KB and stays below about
+\(303\) KB. That is a useful trade-off for AC-3 pruning. H4 keeps extra domain
+information, but the pruning appears to prevent a much larger search frontier
+later.
 
-The FOL-based solvers show a different memory shape. Forward chaining has a
-moderate average of about \(285.23\) KB. It grows with puzzle size, reaching an
-average of about \(510.62\) KB on \(9 \times 9\) puzzles. That is higher than
-the lighter A* variants, but still controlled. This matches the implementation:
-forward chaining stores facts and rules, then saturates the fact set. The cost
-comes from keeping that logical state, not from maintaining a large search
-frontier.
+H3 is the exception. On smaller boards it looks harmless, sometimes close to the
+other A* lines. The problem appears on harder larger puzzles. When the
+min-conflicts heuristic does not keep the search focused, the open frontier
+grows quickly, and memory follows. That is why h3 averages about \(1.5\) MB
+even though many of its smaller cases are modest. Its peak, about \(20\) MB, is
+the largest value in the whole memory plot.
 
-Backward chaining uses much more memory. Its average is about \(2106.31\) KB,
-and it reaches about \(7329.70\) KB on \texttt{puzzle\_24\_9x9\_hard}. The
-increase is steady by puzzle size: about \(165.51\) KB on \(4 \times 4\), then
-about \(6170.95\) KB on \(9 \times 9\). The generate-and-test Horn knowledge
-base explains much of this. Larger puzzles need more grounded facts, more rule
-structure, and more substitutions during proof search.
+The chaining solvers spend memory on logical state rather than search nodes.
+Forward chaining keeps a fact base and updates it until inference has nothing
+new to add. That makes it heavier than the light A* variants, but it stays
+controlled: about \(285\) KB on average and about \(604\) KB at the peak. The
+data-driven fix-point is the reason. The solver keeps inferred facts, applies
+Modus Ponens while new facts are appearing, and stops when the fact set stops
+changing. For a Futoshiki board, the useful value facts are tied to cells and
+candidate values. Once those possibilities are exhausted, there is no growing
+frontier left to store.
 
-Backtracking with forward chaining sits between forward chaining and backward
-chaining on average, but it becomes expensive on hard instances. Its average is
-about \(977.37\) KB, with a peak of about \(4734.27\) KB on
-\texttt{puzzle\_24\_9x9\_hard}. This makes sense for a hybrid method. It keeps
-the propagation machinery of forward chaining, then adds search state when
-propagation alone is not enough.
+Backward chaining is heavier because it pays for grounding before it proves
+anything. Requirement 2.3, Ground the KB, means the solver does not work
+directly with the compact FOL schemas. For a \(9 \times 9\) board, those schemas
+are expanded into a propositional knowledge base first. Some axioms create
+\(O(N^3)\) ground literals or clauses, and the heavier pairwise rules can reach
+\(O(N^4)\). Backward chaining then proves goals over that expanded KB, which
+explains why its average is about \(2.1\) MB and why larger boards create memory
+spikes. The forward-to-backward chaining solver follows the same pattern, but
+with lower memory: about \(1.2\) MB on average and about \(6.3\) MB at the peak.
 
-Brute force is the smallest line in the chart, with an average of only about
-\(6.43\) KB. That number needs context. The brute-force CSV only contains the
-four \(4 \times 4\) puzzles, because larger cases are too slow for exhaustive
-enumeration. Its low memory usage does not mean it is a practical solver. It
-means the implementation keeps very little state while spending a huge amount
-of time enumerating candidates.
+Backtracking with forward chaining lands between the moderate and heavy groups.
+It averages about \(977\) KB and reaches about \(4.6\) MB on the hardest large
+case. That fits the hybrid design: it keeps the forward-chaining propagation
+state, then adds branching state when propagation alone cannot solve the puzzle.
 
-The chart separates the solvers into three groups. Brute force uses very little
-memory but does not scale in time. The A* h1, h2, and h4 variants keep memory
-relatively low, with h4 giving the most stable large-board profile in this run.
-Forward chaining uses more memory because it stores a logical fact base, but it
-stays manageable. Backward chaining and the backtracking-forward-chaining
-hybrid are the heavier options, especially on large or hard puzzles. The memory
-cost comes from different places in different solvers: search frontiers for A*,
-fact and rule storage for chaining, and repeated propagation plus branching for
-the hybrid solver.
+Brute force is the smallest line, averaging only about \(6\) KB. That number
+needs some care. Brute force is memory-light because it keeps almost no solver
+state, but that does not make it practical. It pays for that simplicity with
+time, so the low memory result should not be mistaken for good scalability.
+
+Overall, the plot separates the solvers into a few clear groups. Brute force is
+tiny but too slow to scale. A* h1, h2, and h4 stay memory-efficient, with h4
+giving the most stable A* profile in this benchmark. Forward chaining costs more
+memory because it maintains logical state, but it remains controlled. Backward
+chaining, forward-to-backward chaining, and backtracking with forward chaining
+are the heavier approaches. The main warning from the plot is h3: it can look
+normal on easy puzzles, then become the most memory-hungry solver once the
+search frontier expands.

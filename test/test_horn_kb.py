@@ -28,17 +28,9 @@ from fol.horn_kb import HornClauseKnowledgeBase, HornClause
 from fol.predicates import Val, Less, Diff, Domain
 
 
-# ---------------------------------------------------------------------------
-# Fixture paths
-# ---------------------------------------------------------------------------
-
 FIXTURE_2X2 = os.path.join(os.path.dirname(__file__), "fixtures", "input_2x2.txt")
 FIXTURE_4X4 = os.path.join(os.path.dirname(__file__), "fixtures", "input_4x4.txt")
 
-
-# ---------------------------------------------------------------------------
-# Expected values for 2x2
-# ---------------------------------------------------------------------------
 
 N_2X2 = 2
 GIVEN_CELLS_2X2 = [(0, 0, 1)]
@@ -62,19 +54,10 @@ def expected_rule_count(n: int, num_given: int) -> int:
     return 1 if num_empty > 0 else 0
 
 
-# ---------------------------------------------------------------------------
-# Expected values for 4x4
-# ---------------------------------------------------------------------------
-
 N_4X4 = 4
 GIVEN_CELLS_4X4 = [(0, 0, 1)]
 H_CONSTRAINTS_4X4 = 1  # LessH at (0,0)
 V_CONSTRAINTS_4X4 = 0  # None
-
-
-# ===========================================================================
-# 2x2 Tests
-# ===========================================================================
 
 
 def test_2x2_parser_returns_puzzle():
@@ -226,11 +209,6 @@ def test_2x2_hornkb_inequality_rules():
     has_less = any(lit.name == "Less" for lit in solution_clauses[0].body)
     assert has_less, "Expected Less constraint in Solution rule for inequality"
     print(f"  [PASS] Inequality constraint integrated via Less in Solution rule")
-
-
-# ===========================================================================
-# 4x4 Tests
-# ===========================================================================
 
 
 def test_4x4_parser_returns_puzzle():
@@ -467,11 +445,6 @@ def test_4x4_hornkb_interleaved_structure():
         assert has_diff_between, "Expected interleaved structure: Domain, Diff, Domain"
     
     print(f"  [PASS] Solution rule uses interleaved Generate-and-Test structure")
-
-
-# ===========================================================================
-# Runner
-# ===========================================================================
 
 
 if __name__ == "__main__":
