@@ -24,11 +24,6 @@ from heuristics.min_conflicts_heuristic import MinConflictsHeuristic
 from search.state import SearchState
 
 
-# ===========================================================================
-# Helpers
-# ===========================================================================
-
-
 def make_puzzle(N, grid, h=None, v=None):
     """Build a Puzzle from lists."""
     h_constraints = [
@@ -58,11 +53,6 @@ def make_state(grid, domains=None):
                 if grid_arr[i, j] == 0:
                     domains[(i, j)] = set(range(1, N + 1))
     return SearchState(grid=grid_arr, domains=domains)
-
-
-# ===========================================================================
-# h₁: Empty Cell Count
-# ===========================================================================
 
 
 class TestEmptyCellHeuristic:
@@ -97,11 +87,6 @@ class TestEmptyCellHeuristic:
         puzzle = make_puzzle(3, [[0]*3]*3)
         state = make_state([[0]*3]*3)
         assert self.h.estimate(state, puzzle) >= 0
-
-
-# ===========================================================================
-# h₂: Domain Sum Minus One
-# ===========================================================================
 
 
 class TestDomainSizeHeuristic:
@@ -167,11 +152,6 @@ class TestDomainSizeHeuristic:
         puzzle = make_puzzle(2, [[0, 0], [0, 0]])
         state = make_state([[0, 0], [0, 0]])
         assert self.h.estimate(state, puzzle) >= 0
-
-
-# ===========================================================================
-# h₃: Minimum Conflicts
-# ===========================================================================
 
 
 class TestMinConflictsHeuristic:
@@ -251,11 +231,6 @@ class TestMinConflictsHeuristic:
         assert self.h.estimate(state, puzzle) == 0
 
 
-# ===========================================================================
-# Cross-heuristic comparisons
-# ===========================================================================
-
-
 class TestHeuristicOrdering:
     """h₂ is generally >= h₁ in informativeness on the same state."""
 
@@ -277,11 +252,6 @@ class TestHeuristicOrdering:
         assert EmptyCellHeuristic().estimate(state, puzzle) == 0
         assert DomainSizeHeuristic().estimate(state, puzzle) == 0
         assert MinConflictsHeuristic().estimate(state, puzzle) == 0
-
-
-# ===========================================================================
-# Runner
-# ===========================================================================
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

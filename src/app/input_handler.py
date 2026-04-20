@@ -22,10 +22,6 @@ class InputHandler:
     def __init__(self, app: "GameApplication") -> None:
         self._app = app
 
-    # ------------------------------------------------------------------
-    # Top-level dispatch
-    # ------------------------------------------------------------------
-
     def handle_event(self, event: pygame.event.Event) -> None:
         state = self._app._state
 
@@ -67,10 +63,6 @@ class InputHandler:
             # KB hover tracking
             if state.mode == AppMode.KB:
                 self._update_kb_hover(event.pos)
-
-    # ------------------------------------------------------------------
-    # Click routing
-    # ------------------------------------------------------------------
 
     def handle_click(self, pos: tuple[int, int]) -> None:
         app   = self._app
@@ -267,10 +259,6 @@ class InputHandler:
                     return
         board.selected = None  # click outside grid deselects
 
-    # ------------------------------------------------------------------
-    # Keyboard routing
-    # ------------------------------------------------------------------
-
     def handle_keydown(self, event: pygame.event.Event) -> None:
         state = self._app._state
 
@@ -346,11 +334,6 @@ class InputHandler:
             self._app._advance_step(1)
         elif event.key == pygame.K_r:
             self._app._restart_solve()
-
-
-# ---------------------------------------------------------------------------
-# Key helpers (module-level so they can be tested independently)
-# ---------------------------------------------------------------------------
 
 def _key_to_digit(key: int) -> int | None:
     """Return 1-9 for digit keys (row and numpad), else None."""

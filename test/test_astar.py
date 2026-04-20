@@ -34,12 +34,6 @@ from utils import Stats
 
 FIXTURE_DIR = os.path.join(os.path.dirname(__file__), "fixtures")
 
-
-# ===========================================================================
-# Helpers
-# ===========================================================================
-
-
 def make_puzzle(N, grid, h=None, v=None):
     h_constraints = [
         InequalityConstraint(cell1=(r, c), cell2=(r, c + 1), direction=d)
@@ -73,11 +67,6 @@ def _check_solution(puzzle, solved):
         if not c.is_satisfied(solved):
             return False
     return True
-
-
-# ===========================================================================
-# Group 1 — SearchState
-# ===========================================================================
 
 
 class TestSearchState:
@@ -141,11 +130,6 @@ class TestSearchState:
         assert sorted(cells) == [(0, 1), (1, 0)]
 
 
-# ===========================================================================
-# Group 2 — AStarEngine internals
-# ===========================================================================
-
-
 class TestAStarEngineInternals:
     def test_compute_violations_valid(self):
         grid = np.array([[1, 2], [2, 1]])
@@ -187,11 +171,6 @@ class TestAStarEngineInternals:
             domains, grid, 3, 0, 0, 1, puzzle,
         )
         assert 1 not in domains[(0, 1)]
-
-
-# ===========================================================================
-# Group 3 — AStarSolver end-to-end
-# ===========================================================================
 
 
 class TestAStarSolver2x2:
@@ -303,12 +282,6 @@ class TestAStarSolver4x4:
         assert solution.grid[0, 0] < solution.grid[0, 1]
         assert solution.grid[0, 0] < solution.grid[1, 0]
 
-
-# ===========================================================================
-# Group 4 — Solution properties
-# ===========================================================================
-
-
 class TestSolutionProperties:
     def test_no_empty_cells(self):
         puzzle = make_puzzle(2, [[1, 0], [0, 0]], h=[(0, 0, "<")])
@@ -344,12 +317,6 @@ class TestSolutionProperties:
         for j in range(N):
             assert sorted(solution.grid[:, j]) == list(range(1, N + 1))
 
-
-# ===========================================================================
-# Group 5 — Unsolvable puzzles
-# ===========================================================================
-
-
 class TestUnsolvable:
     def test_contradictory_givens(self):
         """Same value in same row → no solution."""
@@ -374,12 +341,6 @@ class TestUnsolvable:
         )
         solution, _ = AStarSolver().solve(impossible)
         assert solution is None
-
-
-# ===========================================================================
-# Group 6 — Stats
-# ===========================================================================
-
 
 class TestStats:
     def test_returns_tuple(self):
@@ -412,11 +373,6 @@ class TestStats:
     def test_solver_name_contains_heuristic(self):
         solver = AStarSolver(EmptyCellHeuristic())
         assert "h1" in solver.get_name()
-
-
-# ===========================================================================
-# Runner
-# ===========================================================================
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

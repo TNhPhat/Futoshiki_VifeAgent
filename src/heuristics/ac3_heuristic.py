@@ -7,10 +7,6 @@ the pruned domains.
 
 If AC-3 detects a contradiction (any domain collapses to empty),
 returns a large penalty value indicating the state is unreachable.
-
-Verdict: [ok] Admissible -- AC-3 only removes provably impossible values,
-so the pruned h2 is <= raw h2 <= h*(n).  Strongest heuristic but most
-expensive to compute per node.
 """
 
 from __future__ import annotations

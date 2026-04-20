@@ -82,9 +82,10 @@ def make_test_puzzle(N: int) -> Puzzle:
     )
 
 
-def test_pure_axiom_counts(N: int):
+def test_pure_axiom_counts():
     """Test clause counts for axioms that only depend on N."""
     from math import comb
+    N = 4
 
     # A1: N^2 clauses, each with N literals
     a1 = Axioms.a1_cell_existence(N)
@@ -146,8 +147,10 @@ def test_pure_axiom_counts(N: int):
     print(f"  [PASS] A10: 0 clauses (no-op)")
 
 
-def test_puzzle_axioms(N: int, puzzle: Puzzle):
+def test_puzzle_axioms():
     """Test axioms that depend on puzzle data."""
+    N = 4
+    puzzle = make_test_puzzle(N)
     # A9: given clues — our test puzzle has 2 givens
     a9 = Axioms.a9_given_clues(N, puzzle)
     assert len(a9) == 2, f"A9: {len(a9)} != 2"
@@ -188,8 +191,10 @@ def test_puzzle_axioms(N: int, puzzle: Puzzle):
     print(f"  [PASS] A16: {len(a16)} clauses")
 
 
-def test_a16_correctness(N: int, puzzle: Puzzle):
+def test_a16_correctness():
     """Spot-check A16 clause content for LessH at (0,0)."""
+    N = 4
+    puzzle = make_test_puzzle(N)
     a16 = Axioms.a16_inequality_contrapositive(N, puzzle)
 
     # LessH at (0,0): should ban v1 >= v2

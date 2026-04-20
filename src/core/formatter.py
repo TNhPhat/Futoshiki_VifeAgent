@@ -27,10 +27,6 @@ class Formatter:
 
     _EMPTY_CELL = "."  # display character for unsolved cells (value 0)
 
-    # ------------------------------------------------------------------
-    # Public API
-    # ------------------------------------------------------------------
-
     def format(self, puzzle: Puzzle) -> str:
         """
         Render a puzzle as a formatted string.
@@ -72,10 +68,6 @@ class Formatter:
         content = self.format(puzzle)
         with open(file_path, "w", encoding="utf-8") as fh:
             fh.write(content + "\n")
-
-    # ------------------------------------------------------------------
-    # Private helpers
-    # ------------------------------------------------------------------
 
     def _format_value_row(self, puzzle: Puzzle, i: int) -> str:
         """

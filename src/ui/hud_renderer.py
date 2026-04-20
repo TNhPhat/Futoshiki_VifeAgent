@@ -32,11 +32,6 @@ from ui.layout import (
 # Re-export so import lines stay short
 _SIDE = SIDE_PANEL_RECT
 
-
-# ---------------------------------------------------------------------------
-# Button helper
-# ---------------------------------------------------------------------------
-
 def _draw_button(
     surface: pygame.Surface,
     rect: pygame.Rect,
@@ -71,11 +66,6 @@ def _draw_label(surface, fnt, text, x, y, colour=None):
     txt = fnt.render(text, True, colour)
     surface.blit(txt, (x, y))
     return txt.get_height()
-
-
-# ---------------------------------------------------------------------------
-# CNF literal explanation helper
-# ---------------------------------------------------------------------------
 
 def _explain_literal(lit) -> list[str]:
     """Return 1-3 human-readable lines explaining what a fact means."""
@@ -134,11 +124,6 @@ def _explain_literal(lit) -> list[str]:
     sign = "~" if neg else ""
     return [f"{sign}{n}({','.join(str(a) for a in args)})"]
 
-
-# ---------------------------------------------------------------------------
-# HUD Renderer
-# ---------------------------------------------------------------------------
-
 class HudRenderer(BaseRenderer):
 
     def render(self, surface: pygame.Surface, state: GameState) -> None:
@@ -171,10 +156,6 @@ class HudRenderer(BaseRenderer):
         if state.mode == AppMode.KB and state.kb_show_popup:
             self._draw_kb_popup(surface, state, mouse_pos)
 
-    # ------------------------------------------------------------------
-    # Title bar
-    # ------------------------------------------------------------------
-
     def _draw_title_bar(self, surface, state, mouse_pos):
         pygame.draw.rect(surface, (50, 80, 130), TITLE_BAR_RECT)
 
@@ -201,10 +182,6 @@ class HudRenderer(BaseRenderer):
             key = "tab_kb" if label == "KB" else f"tab_{label.lower()}"
             state._hud_rects[key] = rect
 
-    # ------------------------------------------------------------------
-    # Side panel background
-    # ------------------------------------------------------------------
-
     def _draw_side_panel_bg(self, surface):
         pygame.draw.rect(surface, T.CLR_PANEL_BG, SIDE_PANEL_RECT)
         pygame.draw.line(
@@ -212,10 +189,6 @@ class HudRenderer(BaseRenderer):
             (SIDE_PANEL_RECT.x, SIDE_PANEL_RECT.y),
             (SIDE_PANEL_RECT.x, SIDE_PANEL_RECT.bottom), 1,
         )
-
-    # ------------------------------------------------------------------
-    # Solver panel
-    # ------------------------------------------------------------------
 
     def _draw_solver_panel(self, surface, state, mouse_pos):
         r = SOLVER_PANEL_RECT
@@ -313,10 +286,6 @@ class HudRenderer(BaseRenderer):
             (r.x, r.bottom - 1), (r.right, r.bottom - 1), 1,
         )
 
-    # ------------------------------------------------------------------
-    # Puzzle panel
-    # ------------------------------------------------------------------
-
     def _draw_puzzle_panel(self, surface, state, mouse_pos):
         r = PUZZLE_PANEL_RECT
         px = r.x + SIDE_PANEL_PADDING
@@ -388,10 +357,6 @@ class HudRenderer(BaseRenderer):
             (r.x, r.bottom - 1), (r.right, r.bottom - 1), 1,
         )
 
-    # ------------------------------------------------------------------
-    # KB panel  (full side panel, shown in AppMode.KB)
-    # ------------------------------------------------------------------
-
     def _draw_kb_panel(self, surface, state, mouse_pos):
         r = SIDE_PANEL_RECT
         px = r.x + SIDE_PANEL_PADDING
@@ -404,7 +369,6 @@ class HudRenderer(BaseRenderer):
 
         kb = state.cnf_kb
 
-        # -- Header ---------------------------------------------------
         _draw_label(surface, fnt_val, "CNF KNOWLEDGE BASE", px, py, T.CLR_LABEL_TITLE)
         help_rect = pygame.Rect(r.right - SIDE_PANEL_PADDING - 22, py, 22, 20)
         _draw_button(surface, help_rect, "?", fnt_btn,
@@ -433,7 +397,6 @@ class HudRenderer(BaseRenderer):
                          (px, py), (r.right - SIDE_PANEL_PADDING, py), 1)
         py += 8
 
-        # -- FACTS / RULES toggle tabs ---------------------------------
         tab_w = (pw - 4) // 2
         facts_tab = pygame.Rect(px,           py, tab_w, 22)
         rules_tab = pygame.Rect(px + tab_w + 4, py, pw - tab_w - 4, 22)
@@ -447,7 +410,6 @@ class HudRenderer(BaseRenderer):
         state._hud_rects["kb_tab_rules"] = rules_tab
         py += 28
 
-        # Reserve bottom info-box
         info_box_h   = 12 + 18 + 3 * 15 + 8
         info_box_top = r.bottom - SIDE_PANEL_PADDING - info_box_h
 
@@ -458,7 +420,6 @@ class HudRenderer(BaseRenderer):
         visible_rows = max(1, available_h // row_h)
 
         if state.kb_panel_view == "facts":
-            # -- FACTS list -------------------------------------------
             facts = sorted(kb.facts, key=lambda l: (l.name, l.args, l.negated))
             _draw_label(surface, fnt_val, "FACTS", px, py, T.CLR_LABEL_TITLE)
 
@@ -515,7 +476,6 @@ class HudRenderer(BaseRenderer):
             state._hud_rects["_kb_rule_rows"] = []
 
         else:
-            # -- RULES list -------------------------------------------
             rules = [c for c in kb.clauses if len(c) > 1]
             _draw_label(surface, fnt_val, "RULES", px, py, T.CLR_LABEL_TITLE)
 
@@ -564,7 +524,6 @@ class HudRenderer(BaseRenderer):
             state._hud_rects["_kb_rule_rows"] = rule_rows
             state._hud_rects["_kb_fact_rows"] = []
 
-        # -- Info / explanation box ------------------------------------
         pygame.draw.line(surface, T.CLR_PANEL_BORDER,
                          (px, info_box_top), (r.right - SIDE_PANEL_PADDING, info_box_top), 1)
         ipy = info_box_top + 8
@@ -592,10 +551,6 @@ class HudRenderer(BaseRenderer):
                             else "Hover a rule to highlight", px, ipy)
                 ipy += 15
                 _draw_label(surface, fnt_lbl, "its cells on the grid.", px, ipy)
-
-    # ------------------------------------------------------------------
-    # Play panel
-    # ------------------------------------------------------------------
 
     def _draw_play_panel(self, surface, state, mouse_pos):
         r = PLAY_PANEL_RECT
@@ -634,10 +589,6 @@ class HudRenderer(BaseRenderer):
                      hover=notes_rect.collidepoint(mouse_pos) and in_play and has_board)
         state._hud_rects["notes_toggle"] = notes_rect
 
-    # ------------------------------------------------------------------
-    # Slider
-    # ------------------------------------------------------------------
-
     @staticmethod
     def _draw_slider(surface, rect, value, min_v, max_v, enabled):
         track_col = T.CLR_SLIDER_TRACK if enabled else T.CLR_BTN_DISABLED
@@ -648,10 +599,6 @@ class HudRenderer(BaseRenderer):
             tx = int(rect.x + t * rect.width)
             thumb = pygame.Rect(tx - 6, rect.y - 4, 12, rect.height + 8)
             pygame.draw.rect(surface, thumb_col, thumb, border_radius=4)
-
-    # ------------------------------------------------------------------
-    # Puzzle list overlay
-    # ------------------------------------------------------------------
 
     def _draw_puzzle_list_overlay(self, surface, state, mouse_pos):
         if not hasattr(state, "_puzzle_entries"):
@@ -699,14 +646,6 @@ class HudRenderer(BaseRenderer):
             surface.blit(txt, (row_rect.x + 8, row_rect.y + (row_h - txt.get_height()) // 2 - 1))
             state._hud_rects["_puzzle_rows"].append((row_rect, entry))
 
-    # ------------------------------------------------------------------
-    # Generate dialog
-    # ------------------------------------------------------------------
-
-    # ------------------------------------------------------------------
-    # Solver dropdown overlay
-    # ------------------------------------------------------------------
-
     def _draw_solver_dropdown(self, surface, state, mouse_pos):
         solver_names: dict = state._hud_rects.get("_solver_names", {})
         anchor: pygame.Rect = state._hud_rects.get("_solver_select_rect")
@@ -747,10 +686,6 @@ class HudRenderer(BaseRenderer):
             txt = fnt_btn.render(sname, True, fg)
             surface.blit(txt, (item_rect.x + 6, item_rect.centery - txt.get_height() // 2))
             state._hud_rects["_solver_dropdown_items"].append((item_rect, skey))
-
-    # ------------------------------------------------------------------
-    # KB reference popup
-    # ------------------------------------------------------------------
 
     def _draw_kb_popup(self, surface, state, mouse_pos):
         """Modal overlay covering the grid area that explains all CNF clauses."""
@@ -855,10 +790,6 @@ class HudRenderer(BaseRenderer):
 
         surface.set_clip(old_clip)
 
-    # ------------------------------------------------------------------
-    # Generate dialog
-    # ------------------------------------------------------------------
-
     def _draw_generate_dialog(self, surface, state, mouse_pos):
         overlay_w = 300
         overlay_h = 140
@@ -876,11 +807,6 @@ class HudRenderer(BaseRenderer):
         _draw_label(surface, fnt_val, "Generating puzzle...", ox + 12, py, T.CLR_LABEL_TITLE)
         py += 28
         _draw_label(surface, T.font("hud_label"), "This may take a few seconds.", ox + 12, py)
-
-
-# ---------------------------------------------------------------------------
-# Clause formatting helpers
-# ---------------------------------------------------------------------------
 
 def _format_lit_short(lit) -> str:
     """Compact single-literal string for clause display rows."""
@@ -959,11 +885,6 @@ def _explain_clause(clause) -> list[str]:
     cell_strs = ", ".join(f"({r+1},{c+1})" for r,c in cells[:3])
     return [f"{n}-literal clause",
             f"cells: {cell_strs}" if cell_strs else "no cell refs"]
-
-
-# ---------------------------------------------------------------------------
-# KB popup content -- static reference card
-# ---------------------------------------------------------------------------
 
 _KB_POPUP_SECTIONS = [
     ("title",   "CNF CLAUSE REFERENCE"),

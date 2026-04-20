@@ -22,6 +22,13 @@ _DIFF_LABEL = {"easy": "Easy", "medium": "Medium", "hard": "Hard"}
 # routing through a near-white midpoint for a perceptually smooth gradient.
 _HEATMAP_CMAP = sns.diverging_palette(10, 133, s=75, l=50, as_cmap=True)
 
+_FAMILY_STYLE = {
+    "astar": {"linestyle": "-", "marker": "o"},
+    "bruteforce": {"linestyle": ":", "marker": "X"},
+    "forward": {"linestyle": "-.", "marker": "s"},
+    "backward": {"linestyle": "--", "marker": "^"},
+}
+
 
 # --- data loading / preparation -----------------------------------------------
 
@@ -89,6 +96,23 @@ def _x_order(df: pd.DataFrame) -> list[str]:
 
 # --- line charts --------------------------------------------------------------
 
+def _solver_family(solver_name: str) -> str:
+    name = solver_name.lower()
+    if "a*" in name:
+        return "astar"
+    if "bruteforce" in name or "brute force" in name:
+        return "bruteforce"
+    if "backward" in name:
+        return "backward"
+    if "forward" in name:
+        return "forward"
+    return "forward"
+
+
+def _line_style_for_solver(solver_name: str) -> dict[str, str]:
+    return _FAMILY_STYLE[_solver_family(solver_name)]
+
+
 def _plot_line_chart(
     df: pd.DataFrame,
     metric: str,
@@ -110,14 +134,16 @@ def _plot_line_chart(
             .set_index("x_label")
             .reindex(x_order)
         )
+        style = _line_style_for_solver(solver)
         ax.plot(
             x_order,
             sub[metric].values,
-            marker="o",
+            marker=style["marker"],
+            linestyle=style["linestyle"],
             label=solver,
             color=color,
-            linewidth=1.8,
-            markersize=5,
+            linewidth=2.0,
+            markersize=5.5,
         )
 
     ax.set_title(title, fontsize=14, fontweight="bold", pad=10)
@@ -363,7 +389,7 @@ def visualize(data_dir: Path, output_dir: Path | None = None) -> None:
 
     line_charts = [
         ("time_ms",   "Runtime (ms, log scale)", "Time (ms)",   True),
-        ("memory_kb", "Memory Usage (KB)",        "Memory (KB)", False),
+        ("memory_kb", "Memory Usage (KB, log scale)", "Memory (KB)", True),
         (
             "ops_count",
             "Operations Count  (node_expansions for A*,  inference_count for others)",

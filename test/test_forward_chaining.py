@@ -25,10 +25,6 @@ from core.puzzle import Puzzle
 from utils.stats_csv import StatsCsvWriter
 
 
-# ===========================================================================
-# Test Fixtures - Valid Puzzles
-# ===========================================================================
-
 FIXTURE_DIR = os.path.join(os.path.dirname(__file__), "fixtures")
 
 def create_valid_4x4_puzzle() -> Puzzle:
@@ -64,10 +60,6 @@ def assert_solved_cells_match_expected(solution: Puzzle, expected_grid: np.ndarr
         f"Solved-cell mismatch\nExpected:\n{expected_grid}\nGot:\n{solution.grid}"
     )
 
-
-# ===========================================================================
-# Forward Chaining Engine Tests
-# ===========================================================================
 
 def test_engine_derive_new_fact():
     """Engine derives a new fact based on a simple rule."""
@@ -113,10 +105,6 @@ def test_engine_max_iterations():
     # If it didn't hang, the test passes
     print("  [PASS] Engine respects max_iterations limit")
 
-
-# ===========================================================================
-# Forward Chaining Solver Tests
-# ===========================================================================
 
 def test_solver_solve_2x2():
     """ForwardChaining solves a 2x2 puzzle."""
@@ -195,10 +183,6 @@ def test_solver_name():
     print(f"  [PASS] Solver name: {name}")
 
 
-# ===========================================================================
-# Integration Tests
-# ===========================================================================
-
 def _run_benchmark_against_expected():
     """Solve all benchmark inputs and match expected solution grids using FC."""
     benchmark_root = Path(__file__).resolve().parents[1] / "src" / "benchmark"
@@ -246,10 +230,6 @@ def _run_benchmark_against_expected():
 def test_integration_benchmark_against_expected():
     _run_benchmark_against_expected()
 
-
-# ===========================================================================
-# Runner
-# ===========================================================================
 
 if __name__ == "__main__":
     print("=== Forward Chaining Test Suite ===\n")

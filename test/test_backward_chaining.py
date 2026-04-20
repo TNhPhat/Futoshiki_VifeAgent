@@ -26,13 +26,7 @@ from core.puzzle import Puzzle
 from utils.stats_csv import StatsCsvWriter
 import numpy as np
 
-
-# ===========================================================================
-# Test Fixtures - Valid 4x4 Puzzles
-# ===========================================================================
-
 FIXTURE_DIR = os.path.join(os.path.dirname(__file__), "fixtures")
-
 
 def create_valid_4x4_puzzle() -> Puzzle:
     """
@@ -125,12 +119,6 @@ def create_hidden_single_row_4x4_puzzle() -> Puzzle:
     ], dtype=int)
 
     return Puzzle(N=4, grid=grid, h_constraints=[], v_constraints=[])
-
-
-# ===========================================================================
-# Unifier Tests
-# ===========================================================================
-
 
 def test_unifier_match_identical_literals():
     """Unifier.match succeeds for identical ground literals."""
@@ -234,11 +222,6 @@ def test_unifier_is_variable():
     print("  [PASS] _is_variable identifies variables correctly")
 
 
-# ===========================================================================
-# Horn KB Tests
-# ===========================================================================
-
-
 def test_horn_kb_add_fact():
     """HornClauseKnowledgeBase stores and retrieves facts."""
     kb = HornClauseKnowledgeBase()
@@ -286,11 +269,6 @@ def test_horn_kb_clause_count():
     
     assert kb.clause_count == 3, f"Expected 3 clauses, got {kb.clause_count}"
     print("  [PASS] KB tracks clause count")
-
-
-# ===========================================================================
-# Backward Chaining Engine Tests
-# ===========================================================================
 
 
 def test_engine_prove_fact():
@@ -363,11 +341,6 @@ def test_engine_depth_limit():
     result = engine.prove_all([goal])
     assert result is None, "Expected None due to depth limit or missing fact"
     print("  [PASS] Engine respects depth limit")
-
-
-# ===========================================================================
-# Backward Chaining Solver Tests
-# ===========================================================================
 
 
 def test_solver_solve_2x2():
@@ -471,11 +444,6 @@ def test_solver_name():
     
     assert "Backward" in name or "backward" in name, f"Name should mention backward: {name}"
     print(f"  [PASS] Solver name: {name}")
-
-
-# ===========================================================================
-# Integration Tests
-# ===========================================================================
 
 
 def test_integration_parse_and_solve():
@@ -598,16 +566,6 @@ def _run_benchmark_against_expected():
         print(f"  [PASS] {input_path.name}")
         stats_rows.append((input_path.name, stats))
     return stats_rows
-
-
-# def test_integration_benchmark_against_expected():
-#     _run_benchmark_against_expected()
-
-
-# ===========================================================================
-# Runner
-# ===========================================================================
-
 
 if __name__ == "__main__":
     print("=== Backward Chaining Test Suite ===\n")
